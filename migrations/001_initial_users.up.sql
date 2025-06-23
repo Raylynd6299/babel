@@ -25,8 +25,3 @@ CREATE TABLE languages (
     is_active BOOLEAN DEFAULT true,
     phonetic_alphabet VARCHAR(20) -- 'IPA', 'ARPAbet', etc.
 );
-
-INSERT INTO languages (code, name, native_name) VALUES
-('en', 'English', 'English'),
-('es', 'Spanish', 'Español'),
-('fr', 'French', 'Français');

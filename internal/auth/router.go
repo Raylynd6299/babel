@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
-
-	"github.com/Raylynd6299/babel/internal/shared/config"
 )
 
 type Router struct {
@@ -37,7 +35,7 @@ func NewRouter(service *Service) *gin.Engine {
 
 		// protected routes
 		protected := v1.Group("/")
-		protected.Use(AuthMiddleware())
+		protected.Use(AuthMiddleware(authRouter.service.jwtSecret))
 		{
 			protected.GET("/me", authRouter.GetProfile)
 			protected.PUT("/me", authRouter.UpdateProfile)
@@ -106,7 +104,7 @@ func (r *Router) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" {
@@ -121,7 +119,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(config.Load().JWTSecret), nil
+			return []byte(jwtSecret), nil
 		})
 
 		if err != nil || !token.Valid {
