@@ -1,0 +1,168 @@
+services:
+  # Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: polyfy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # InfluxDB for metrics
+  influxdb:
+    image: influxdb:2.7
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: polyfy
+      DOCKER_INFLUXDB_INIT_BUCKET: metrics
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+
+  # MinIO for file storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/api-gateway.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/polyfy?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-jwt-secret-key
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - CONTENT_SERVICE_URL=http://content-service:8002
+      - PROGRESS_SERVICE_URL=http://progress-service:8003
+      - VOCABULARY_SERVICE_URL=http://vocabulary-service:8004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/auth-service.Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/polyfy?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-jwt-secret-key
+      - PORT=8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Content Service
+  content-service:
+    build:
+      context: .
+      dockerfile: docker/content-service.Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/polyfy?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PORT=8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Progress Service
+  progress-service:
+    build:
+      context: .
+      dockerfile: docker/progress-service.Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/polyfy?sslmode=disable
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=your-influxdb-token
+      - INFLUXDB_ORG=polyfy
+      - INFLUXDB_BUCKET=metrics
+      - PORT=8003
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Vocabulary Service
+  vocabulary-service:
+    build:
+      context: .
+      dockerfile: docker/vocabulary-service.Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/polyfy?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - PORT=8004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  minio_data:
+
+networks:
+ default:
+   driver: bridge

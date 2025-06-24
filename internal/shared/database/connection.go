@@ -28,5 +28,10 @@ func NewConnection(databaseURL string) *gorm.DB {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// Run migrations
+	if err := RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
 	return db
 }

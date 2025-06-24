@@ -6,12 +6,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
+
+	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
 )
 
 type Router struct {
-	service   *Service
-	validator *validator.Validate
+	service    *Service
+	validator  *validator.Validate
+	jwtService *polyfyjwt.Service
 }
 
 func NewRouter(service *Service) *gin.Engine {
@@ -22,9 +24,20 @@ func NewRouter(service *Service) *gin.Engine {
 	router.Use(gin.Recovery())
 	router.Use(CORSMiddleware())
 
+	// Create JWT Service
+	jwtConfig := polyfyjwt.Config{
+		SecretKey:            service.jwtSecret,
+		AccessTokenDuration:  time.Hour * 2,
+		RefreshTokenDuration: time.Hour * 24 * 7,
+		Issuer:               "polyfy-auth",
+	}
+
+	jwtService := polyfyjwt.NewService(jwtConfig)
+
 	authRouter := &Router{
-		service:   service,
-		validator: validator.New(),
+		service:    service,
+		validator:  validator.New(),
+		jwtService: jwtService,
 	}
 
 	v1 := router.Group("/api/v1")
@@ -35,7 +48,7 @@ func NewRouter(service *Service) *gin.Engine {
 
 		// protected routes
 		protected := v1.Group("/")
-		protected.Use(AuthMiddleware(authRouter.service.jwtSecret))
+		protected.Use(authRouter.jwtService.AuthMiddleware())
 		{
 			protected.GET("/me", authRouter.GetProfile)
 			protected.PUT("/me", authRouter.UpdateProfile)
@@ -104,52 +117,6 @@ func (r *Router) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		// Remove "Bearer " prefix
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			// Check if token is expired - CORRECCIÓN AQUÍ
-			if exp, ok := claims["exp"].(float64); ok {
-				// Usar time.Now().Unix() en lugar de jwt.TimeFunc().Unix()
-				if int64(exp) < time.Now().Unix() {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
-					c.Abort()
-					return
-				}
-			}
-
-			c.Set("user_id", claims["user_id"])
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
 func (r *Router) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -172,13 +139,13 @@ func (r *Router) RefreshToken(c *gin.Context) {
 }
 
 func (r *Router) GetProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	user, err := r.service.GetUserByID(c.Request.Context(), userID.(string))
+	user, err := r.service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
@@ -188,7 +155,7 @@ func (r *Router) GetProfile(c *gin.Context) {
 }
 
 func (r *Router) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -205,7 +172,7 @@ func (r *Router) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := r.service.UpdateProfile(c.Request.Context(), userID.(string), req)
+	user, err := r.service.UpdateProfile(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -215,13 +182,13 @@ func (r *Router) UpdateProfile(c *gin.Context) {
 }
 
 func (r *Router) DeleteAccount(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	err := r.service.DeleteAccount(c.Request.Context(), userID.(string))
+	err := r.service.DeleteAccount(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -4,15 +4,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
+
+	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
 )
 
 type Router struct {
-	service   *Service
-	validator *validator.Validate
+	service    *Service
+	validator  *validator.Validate
+	jwtService *polyfyjwt.Service
 }
 
 func NewRouter(service *Service) *gin.Engine {
@@ -23,9 +26,20 @@ func NewRouter(service *Service) *gin.Engine {
 	router.Use(gin.Recovery())
 	router.Use(CORSMiddleware())
 
+	// Create JWT Service
+	jwtConfig := polyfyjwt.Config{
+		SecretKey:            service.jwtSecret,
+		AccessTokenDuration:  time.Hour * 2,
+		RefreshTokenDuration: time.Hour * 24 * 7,
+		Issuer:               "polyfy-auth",
+	}
+
+	jwtService := polyfyjwt.NewService(jwtConfig)
+
 	contentRouter := &Router{
-		service:   service,
-		validator: validator.New(),
+		service:    service,
+		validator:  validator.New(),
+		jwtService: jwtService,
 	}
 
 	v1 := router.Group("/api/v1")
@@ -41,7 +55,7 @@ func NewRouter(service *Service) *gin.Engine {
 
 	// Protected routes
 	protected := v1.Group("/content")
-	protected.Use(AuthMiddleware(contentRouter.service.jwtSecret))
+	protected.Use(contentRouter.jwtService.AuthMiddleware())
 	{
 		protected.POST("/", contentRouter.CreateContent)
 		protected.PUT("/:id", contentRouter.UpdateContent)
@@ -58,7 +72,7 @@ func NewRouter(service *Service) *gin.Engine {
 
 // Content CRUD handlers
 func (r *Router) CreateContent(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -75,7 +89,7 @@ func (r *Router) CreateContent(c *gin.Context) {
 		return
 	}
 
-	content, err := r.service.CreateContent(c.Request.Context(), req, userID.(string))
+	content, err := r.service.CreateContent(c.Request.Context(), req, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -101,7 +115,7 @@ func (r *Router) GetContent(c *gin.Context) {
 }
 
 func (r *Router) UpdateContent(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -124,7 +138,7 @@ func (r *Router) UpdateContent(c *gin.Context) {
 		return
 	}
 
-	content, err := r.service.UpdateContent(c.Request.Context(), id, req, userID.(string))
+	content, err := r.service.UpdateContent(c.Request.Context(), id, req, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -134,7 +148,7 @@ func (r *Router) UpdateContent(c *gin.Context) {
 }
 
 func (r *Router) DeleteContent(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -146,7 +160,7 @@ func (r *Router) DeleteContent(c *gin.Context) {
 		return
 	}
 
-	err := r.service.DeleteContent(c.Request.Context(), id, userID.(string))
+	err := r.service.DeleteContent(c.Request.Context(), id, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -156,7 +170,7 @@ func (r *Router) DeleteContent(c *gin.Context) {
 }
 
 func (r *Router) RateContent(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -180,7 +194,7 @@ func (r *Router) RateContent(c *gin.Context) {
 	}
 
 	rating := ContentRating{
-		UserID:              userID.(string),
+		UserID:              userID,
 		ContentID:           contentID,
 		DifficultyRating:    req.DifficultyRating,
 		UsefulnessRating:    req.UsefulnessRating,
@@ -188,7 +202,7 @@ func (r *Router) RateContent(c *gin.Context) {
 		ReviewText:          req.ReviewText,
 	}
 
-	err := r.service.RateContent(c.Request.Context(), userID.(string), contentID, rating)
+	err := r.service.RateContent(c.Request.Context(), userID, contentID, rating)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -312,7 +326,7 @@ func (r *Router) GetContentEpisodes(c *gin.Context) {
 }
 
 func (r *Router) CreateEpisode(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -335,7 +349,7 @@ func (r *Router) CreateEpisode(c *gin.Context) {
 		return
 	}
 
-	episode, err := r.service.CreateEpisode(c.Request.Context(), contentID, req, userID.(string))
+	episode, err := r.service.CreateEpisode(c.Request.Context(), contentID, req, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -345,7 +359,7 @@ func (r *Router) CreateEpisode(c *gin.Context) {
 }
 
 func (r *Router) UpdateEpisode(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -368,7 +382,7 @@ func (r *Router) UpdateEpisode(c *gin.Context) {
 		return
 	}
 
-	episode, err := r.service.UpdateEpisode(c.Request.Context(), episodeID, req, userID.(string))
+	episode, err := r.service.UpdateEpisode(c.Request.Context(), episodeID, req, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -378,7 +392,7 @@ func (r *Router) UpdateEpisode(c *gin.Context) {
 }
 
 func (r *Router) DeleteEpisode(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -390,7 +404,7 @@ func (r *Router) DeleteEpisode(c *gin.Context) {
 		return
 	}
 
-	err := r.service.DeleteEpisode(c.Request.Context(), episodeID, userID.(string))
+	err := r.service.DeleteEpisode(c.Request.Context(), episodeID, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -411,7 +425,7 @@ func (r *Router) GetLanguages(c *gin.Context) {
 }
 
 func (r *Router) GetRecommendations(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -431,7 +445,7 @@ func (r *Router) GetRecommendations(c *gin.Context) {
 		}
 	}
 
-	recommendations, err := r.service.GetRecommendations(c.Request.Context(), userID.(string), languageID, limit)
+	recommendations, err := r.service.GetRecommendations(c.Request.Context(), userID, languageID, limit)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -450,45 +464,6 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		// Remove "Bearer " prefix
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(jwtSecret), nil
-		})
-
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
-			c.Set("user_id", claims.Subject)
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
 			return
 		}
 

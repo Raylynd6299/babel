@@ -5,44 +5,40 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+
+	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
 )
 
 type Service struct {
-	db        *gorm.DB
-	jwtSecret string
+	db         *gorm.DB
+	jwtSecret  string
+	jwtService *polyfyjwt.Service
 }
 
 func NewService(db *gorm.DB, jwtSecret string) *Service {
+	jwtConfig := polyfyjwt.Config{
+		SecretKey:            jwtSecret,
+		AccessTokenDuration:  time.Hour * 2,
+		RefreshTokenDuration: time.Hour * 24 * 7,
+		Issuer:               "polyfy-auth",
+	}
+
 	return &Service{
-		db:        db,
-		jwtSecret: jwtSecret,
+		db:         db,
+		jwtService: polyfyjwt.NewService(jwtConfig),
 	}
 }
 
-func (s *Service) generateAccessToken(userID string) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 2).Unix(), // 2 hours
-		"iat":     time.Now().Unix(),
-	}
+func (s *Service) generateAccessToken(userID string, userEmail string) (string, error) {
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.jwtSecret))
+	return s.jwtService.GenerateAccessToken(userID, userEmail)
 }
 
-func (s *Service) generateRefreshToken(userID string) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
-		"iat":     time.Now().Unix(),
-		"type":    "refresh",
-	}
+func (s *Service) generateRefreshToken(userID string, userEmail string) (string, error) {
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.jwtSecret))
+	return s.jwtService.GenerateRefreshToken(userID, userEmail)
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
@@ -80,12 +76,12 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthRespo
 	}
 
 	// Generate Tokens
-	accessToken, err := s.generateAccessToken(user.ID)
+	accessToken, err := s.generateAccessToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := s.generateRefreshToken(user.ID)
+	refreshToken, err := s.generateRefreshToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +115,12 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*AuthResponse, e
 	s.db.Save(&user)
 
 	// Generate Tokens
-	accessToken, err := s.generateAccessToken(user.ID)
+	accessToken, err := s.generateAccessToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := s.generateRefreshToken(user.ID)
+	refreshToken, err := s.generateRefreshToken(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -139,31 +135,21 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*AuthResponse, e
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*RefreshTokenResponse, error) {
 	// Parse and validate refresh token
-	token, err := jwt.ParseWithClaims(refreshToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(s.jwtSecret), nil
-	})
 
-	if err != nil || !token.Valid {
-		return nil, errors.New("invalid refresh token")
-	}
-
-	if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
+	if claims, err := s.jwtService.ValidateRefreshToken(refreshToken); err != nil {
 		// Verificar que es un refresh token
-		if claims.ID != "refresh" {
+		if claims.Type != "refresh" {
 			return nil, errors.New("not a refresh token")
 		}
 
 		// Verificar que el usuario existe y no está eliminado
 		var user User
-		if err := s.db.Where("id = ? AND is_active = ?", claims.Subject, true).First(&user).Error; err != nil {
+		if err := s.db.Where("id = ? AND is_active = ?", claims.UserID, true).First(&user).Error; err != nil {
 			return nil, errors.New("user not found or inactive")
 		}
 
 		// Generar nuevo access token
-		accessToken, err := s.generateAccessToken(claims.Subject)
+		accessToken, err := s.generateAccessToken(claims.UserID, claims.Email)
 		if err != nil {
 			return nil, err
 		}
