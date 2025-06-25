@@ -1,4 +1,3 @@
-// internal/vocabulary/service.go
 package vocabulary
 
 import (

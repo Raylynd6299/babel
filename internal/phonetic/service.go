@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,47 +22,17 @@ func NewService(db *gorm.DB, jwtSecret string) *Service {
 }
 
 // Phoneme management
-
-func (s *Service) GetPhonemes(ctx context.Context, languageID int, filter GetPhonemeRequest) ([]Phoneme, int64, error) {
+func (s *Service) GetPhonemesByLanguage(ctx context.Context, languageID int) ([]Phoneme, error) {
 	var phonemes []Phoneme
-	var total int64
-
-	query := s.db.Where("language_id = ?", languageID)
-
-	// Apply filters
-	if filter.Category != "" {
-		query = query.Where("category = ?", filter.Category)
-	}
-
-	if filter.Difficulty > 0 {
-		query = query.Where("difficulty = ?", filter.Difficulty)
-	}
-
-	// Count total
-	query.Model(&Phoneme{}).Count(&total)
-
-	// Apply pagination
-	limit := 20
-	if filter.Limit > 0 && filter.Limit <= 100 {
-		limit = filter.Limit
-	}
-
-	offset := 0
-	if filter.Offset > 0 {
-		offset = filter.Offset
-	}
-
-	err := query.Order("difficulty ASC, symbol ASC").
-		Limit(limit).
-		Offset(offset).
+	err := s.db.Where("language_id = ?", languageID).
+		Order("category, symbol").
 		Find(&phonemes).Error
-
-	return phonemes, total, err
+	return phonemes, err
 }
 
-func (s *Service) GetPhonemeByID(ctx context.Context, phonemeID int) (*Phoneme, error) {
+func (s *Service) GetPhoneme(ctx context.Context, id int) (*Phoneme, error) {
 	var phoneme Phoneme
-	err := s.db.Preload("Language").Where("id = ?", phonemeID).First(&phoneme).Error
+	err := s.db.Preload("Language").Where("id = ?", id).First(&phoneme).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("phoneme not found")
@@ -74,297 +43,73 @@ func (s *Service) GetPhonemeByID(ctx context.Context, phonemeID int) (*Phoneme, 
 }
 
 // User progress tracking
+func (s *Service) GetUserProgress(ctx context.Context, userID string, languageID int) ([]PhoneticProgressResponse, error) {
+	var progress []UserPhoneticProgress
 
-func (s *Service) GetUserPhoneticProgress(ctx context.Context, userID string, languageID int) (*PhoneticProgressResponse, error) {
-	// Get all phonemes for the language
-	var totalPhonemes int64
-	s.db.Model(&Phoneme{}).Where("language_id = ?", languageID).Count(&totalPhonemes)
+	query := `
+        SELECT upp.*, p.symbol 
+        FROM user_phonetic_progress upp
+        JOIN phonemes p ON upp.phoneme_id = p.id
+        WHERE upp.user_id = ? AND p.language_id = ?
+        ORDER BY upp.mastery_level ASC, upp.last_practiced_at ASC
+    `
 
-	// Get user progress
-	var userProgress []UserPhoneticProgress
-	err := s.db.Preload("Phoneme").
-		Joins("JOIN phonemes ON user_phonetic_progress.phoneme_id = phonemes.id").
-		Where("user_phonetic_progress.user_id = ? AND phonemes.language_id = ?", userID, languageID).
-		Find(&userProgress).Error
+	err := s.db.Raw(query, userID, languageID).Scan(&progress).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate statistics
-	masteredCount := 0
-	inProgressCount := 0
-	totalScore := 0.0
-	weakPhonemes := make([]Phoneme, 0)
-
-	for _, progress := range userProgress {
-		averageScore := float64(progress.DiscriminationScore+progress.ProductionScore) / 2
-
-		if progress.MasteryLevel >= 4 {
-			masteredCount++
-		} else if progress.MasteryLevel > 0 {
-			inProgressCount++
-		}
-
-		totalScore += averageScore
-
-		// Identify weak phonemes (score < 70%)
-		if averageScore < 70 && progress.PracticeCount > 2 {
-			weakPhonemes = append(weakPhonemes, progress.Phoneme)
+	result := make([]PhoneticProgressResponse, len(progress))
+	for i, p := range progress {
+		result[i] = PhoneticProgressResponse{
+			PhonemeID:           p.PhonemeID,
+			Symbol:              p.Phoneme.Symbol,
+			DiscriminationScore: p.DiscriminationScore,
+			ProductionScore:     p.ProductionScore,
+			MasteryLevel:        p.MasteryLevel,
+			PracticeCount:       p.PracticeCount,
+			LastPracticedAt:     p.LastPracticedAt,
+			RecommendedNext:     p.MasteryLevel < 3, // Recommend if not mastered
 		}
 	}
 
-	overallScore := 0.0
-	if len(userProgress) > 0 {
-		overallScore = totalScore / float64(len(userProgress))
-	}
-
-	// Get recent progress (last 10 sessions)
-	var recentProgress []UserPhoneticProgress
-	s.db.Preload("Phoneme").
-		Joins("JOIN phonemes ON user_phonetic_progress.phoneme_id = phonemes.id").
-		Where("user_phonetic_progress.user_id = ? AND phonemes.language_id = ?", userID, languageID).
-		Where("user_phonetic_progress.last_practiced_at IS NOT NULL").
-		Order("user_phonetic_progress.last_practiced_at DESC").
-		Limit(10).
-		Find(&recentProgress)
-
-	// Generate recommendations
-	recommendations := s.generatePhonemeRecommendations(userID, languageID, userProgress)
-
-	return &PhoneticProgressResponse{
-		OverallScore:        overallScore,
-		TotalPhonemes:       int(totalPhonemes),
-		MasteredPhonemes:    masteredCount,
-		InProgressPhonemes:  inProgressCount,
-		WeakPhonemes:        weakPhonemes,
-		RecentProgress:      recentProgress,
-		NextRecommendations: recommendations,
-	}, nil
+	return result, nil
 }
 
-func (s *Service) PracticePhoneme(ctx context.Context, userID string, req PracticePhonemeRequest) (*UserPhoneticProgress, error) {
+func (s *Service) PracticePhoneme(ctx context.Context, userID string, req PracticePhonemeRequest) error {
 	// Get or create user progress
-	var userProgress UserPhoneticProgress
-	err := s.db.Where("user_id = ? AND phoneme_id = ?", userID, req.PhonemeID).First(&userProgress).Error
+	var progress UserPhoneticProgress
+	err := s.db.Where("user_id = ? AND phoneme_id = ?", userID, req.PhonemeID).First(&progress).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Create new progress entry
-		userProgress = UserPhoneticProgress{
+		// Create new progress
+		progress = UserPhoneticProgress{
 			UserID:    userID,
 			PhonemeID: req.PhonemeID,
 		}
+		if err := s.db.Create(&progress).Error; err != nil {
+			return err
+		}
 	} else if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Update progress based on exercise type and score
+	// Update progress based on practice type
 	now := time.Now()
-	userProgress.LastPracticedAt = &now
-	userProgress.PracticeCount++
+	progress.LastPracticedAt = &now
+	progress.PracticeCount++
 
-	switch req.ExerciseType {
-	case "discrimination":
-		userProgress.DiscriminationScore = s.calculateNewScore(userProgress.DiscriminationScore, req.Score, userProgress.PracticeCount)
-	case "production":
-		userProgress.ProductionScore = s.calculateNewScore(userProgress.ProductionScore, req.Score, userProgress.PracticeCount)
-	case "minimal_pairs":
-		// Update both scores for minimal pairs exercises
-		userProgress.DiscriminationScore = s.calculateNewScore(userProgress.DiscriminationScore, req.Score, userProgress.PracticeCount)
+	if req.Type == "discrimination" {
+		progress.DiscriminationScore = s.calculateNewScore(progress.DiscriminationScore, req.Score, progress.PracticeCount)
+	} else if req.Type == "production" {
+		progress.ProductionScore = s.calculateNewScore(progress.ProductionScore, req.Score, progress.PracticeCount)
 	}
 
-	// Calculate mastery level
-	averageScore := (userProgress.DiscriminationScore + userProgress.ProductionScore) / 2
-	userProgress.MasteryLevel = s.calculateMasteryLevel(averageScore, userProgress.PracticeCount)
+	// Update mastery level
+	progress.MasteryLevel = s.calculateMasteryLevel(progress.DiscriminationScore, progress.ProductionScore)
 
-	// Save progress
-	if userProgress.ID == "" {
-		err = s.db.Create(&userProgress).Error
-	} else {
-		err = s.db.Save(&userProgress).Error
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Load phoneme data
-	s.db.Preload("Phoneme").Where("id = ?", userProgress.ID).First(&userProgress)
-
-	return &userProgress, nil
+	return s.db.Save(&progress).Error
 }
-
-// Exercise management
-
-func (s *Service) GetExercises(ctx context.Context, languageID int, exerciseType string, difficulty int) ([]PhoneticExercise, error) {
-	query := s.db.Where("language_id = ? AND is_active = ?", languageID, true)
-
-	if exerciseType != "" {
-		query = query.Where("exercise_type = ?", exerciseType)
-	}
-
-	if difficulty > 0 {
-		query = query.Where("difficulty = ?", difficulty)
-	}
-
-	var exercises []PhoneticExercise
-	err := query.Preload("Language").Preload("Phoneme").
-		Order("difficulty ASC, created_at ASC").
-		Find(&exercises).Error
-
-	return exercises, err
-}
-
-func (s *Service) CreateExercise(ctx context.Context, req CreateExerciseRequest) (*PhoneticExercise, error) {
-	exercise := PhoneticExercise{
-		LanguageID:   req.LanguageID,
-		PhonemeID:    req.PhonemeID,
-		ExerciseType: req.ExerciseType,
-		Title:        req.Title,
-		Description:  req.Description,
-		Instructions: req.Instructions,
-		Data:         req.Data,
-		Difficulty:   req.Difficulty,
-		Duration:     req.Duration,
-		IsActive:     true,
-	}
-
-	err := s.db.Create(&exercise).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return &exercise, nil
-}
-
-func (s *Service) CompleteExerciseSession(ctx context.Context, userID string, req ExerciseSessionRequest) (*UserExerciseSession, error) {
-	// Validate exercise exists
-	var exercise PhoneticExercise
-	if err := s.db.Where("id = ?", req.ExerciseID).First(&exercise).Error; err != nil {
-		return nil, errors.New("exercise not found")
-	}
-
-	// Calculate score based on responses
-	score := s.calculateExerciseScore(req.Responses, exercise.Data, exercise.ExerciseType)
-
-	// Create session record
-	session := UserExerciseSession{
-		UserID:      userID,
-		ExerciseID:  req.ExerciseID,
-		Score:       score,
-		Duration:    req.Duration,
-		Responses:   req.Responses,
-		Feedback:    s.generateExerciseFeedback(score, exercise.ExerciseType),
-		CompletedAt: time.Now(),
-	}
-
-	err := s.db.Create(&session).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Load exercise data
-	s.db.Preload("Exercise").Where("id = ?", session.ID).First(&session)
-
-	return &session, nil
-}
-
-// Minimal pairs management
-
-func (s *Service) GetMinimalPairs(ctx context.Context, languageID int, phonemeID1, phonemeID2 int) ([]MinimalPair, error) {
-	query := s.db.Where("language_id = ?", languageID)
-
-	if phonemeID1 > 0 && phonemeID2 > 0 {
-		query = query.Where("(phoneme_id_1 = ? AND phoneme_id_2 = ?) OR (phoneme_id_1 = ? AND phoneme_id_2 = ?)",
-			phonemeID1, phonemeID2, phonemeID2, phonemeID1)
-	} else if phonemeID1 > 0 {
-		query = query.Where("phoneme_id_1 = ? OR phoneme_id_2 = ?", phonemeID1, phonemeID1)
-	}
-
-	var pairs []MinimalPair
-	err := query.Preload("Language").Preload("Phoneme1").Preload("Phoneme2").
-		Order("difficulty ASC").
-		Find(&pairs).Error
-
-	return pairs, err
-}
-
-func (s *Service) CreateMinimalPair(ctx context.Context, req CreateMinimalPairRequest) (*MinimalPair, error) {
-	// Validate phonemes exist
-	var phoneme1, phoneme2 Phoneme
-	if err := s.db.Where("id = ? AND language_id = ?", req.PhonemeID1, req.LanguageID).First(&phoneme1).Error; err != nil {
-		return nil, errors.New("phoneme 1 not found")
-	}
-	if err := s.db.Where("id = ? AND language_id = ?", req.PhonemeID2, req.LanguageID).First(&phoneme2).Error; err != nil {
-		return nil, errors.New("phoneme 2 not found")
-	}
-
-	pair := MinimalPair{
-		LanguageID: req.LanguageID,
-		PhonemeID1: req.PhonemeID1,
-		PhonemeID2: req.PhonemeID2,
-		Word1:      req.Word1,
-		Word2:      req.Word2,
-		AudioURL1:  req.AudioURL1,
-		AudioURL2:  req.AudioURL2,
-		Difficulty: req.Difficulty,
-	}
-
-	err := s.db.Create(&pair).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Load relations
-	s.db.Preload("Language").Preload("Phoneme1").Preload("Phoneme2").
-		Where("id = ?", pair.ID).First(&pair)
-
-	return &pair, nil
-}
-
-// Statistics and analytics
-
-func (s *Service) GetPhoneticStatistics(ctx context.Context, userID string, languageID int, days int) (*PhoneticStatistics, error) {
-	startDate := time.Now().AddDate(0, 0, -days)
-
-	stats := &PhoneticStatistics{
-		ProgressByCategory: make(map[string]CategoryProgress),
-	}
-
-	// Get total practice time and sessions
-	var sessions []UserExerciseSession
-	s.db.Joins("JOIN phonetic_exercises ON user_exercise_sessions.exercise_id = phonetic_exercises.id").
-		Where("user_exercise_sessions.user_id = ? AND phonetic_exercises.language_id = ? AND user_exercise_sessions.completed_at >= ?",
-			userID, languageID, startDate).
-		Find(&sessions)
-
-	totalTime := 0
-	totalScore := 0.0
-	for _, session := range sessions {
-		totalTime += session.Duration
-		totalScore += float64(session.Score)
-	}
-
-	stats.SessionsCompleted = len(sessions)
-	stats.TotalPracticeTime = totalTime / 60 // Convert to minutes
-
-	if len(sessions) > 0 {
-		stats.AverageSessionTime = float64(totalTime) / float64(len(sessions)) / 60
-		stats.OverallAccuracy = totalScore / float64(len(sessions))
-	}
-
-	// Get weakest and strongest phonemes
-	stats.WeakestPhonemes, stats.StrongestPhonemes = s.getPhonemesByPerformance(userID, languageID)
-
-	// Get progress by category
-	stats.ProgressByCategory = s.getProgressByCategory(userID, languageID)
-
-	// Get weekly progress
-	stats.WeeklyProgress = s.getWeeklyPhoneticProgress(userID, languageID, days)
-
-	return stats, nil
-}
-
-// Helper methods
 
 func (s *Service) calculateNewScore(currentScore, newScore, practiceCount int) int {
 	if practiceCount == 1 {
@@ -376,349 +121,374 @@ func (s *Service) calculateNewScore(currentScore, newScore, practiceCount int) i
 	return int(float64(currentScore)*(1-weight) + float64(newScore)*weight)
 }
 
-func (s *Service) calculateMasteryLevel(averageScore, practiceCount int) int {
-	if practiceCount < 3 {
-		return 0 // Need minimum practice
-	}
+func (s *Service) calculateMasteryLevel(discriminationScore, productionScore int) int {
+	avgScore := (discriminationScore + productionScore) / 2
 
 	switch {
-	case averageScore >= 95:
-		return 5 // Expert
-	case averageScore >= 85:
+	case avgScore >= 90:
+		return 5 // Master
+	case avgScore >= 80:
 		return 4 // Advanced
-	case averageScore >= 75:
+	case avgScore >= 70:
 		return 3 // Intermediate
-	case averageScore >= 60:
+	case avgScore >= 60:
 		return 2 // Beginner
-	case averageScore >= 40:
+	case avgScore >= 50:
 		return 1 // Novice
 	default:
-		return 0 // Needs work
+		return 0 // Needs practice
 	}
 }
 
-func (s *Service) generatePhonemeRecommendations(userID string, languageID int, userProgress []UserPhoneticProgress) []PhonemeRecommendation {
-	recommendations := make([]PhonemeRecommendation, 0)
+// Exercise management
+func (s *Service) GetExercises(ctx context.Context, filter ExerciseFilter) ([]PhoneticExercise, int64, error) {
+	query := s.db.Model(&PhoneticExercise{}).Preload("Phoneme")
 
-	// Get all phonemes for language
-	var allPhonemes []Phoneme
-	s.db.Where("language_id = ?", languageID).Find(&allPhonemes)
-
-	// Create map of practiced phonemes
-	practicedMap := make(map[int]UserPhoneticProgress)
-	for _, progress := range userProgress {
-		practicedMap[progress.PhonemeID] = progress
+	if filter.PhonemeID > 0 {
+		query = query.Where("phoneme_id = ?", filter.PhonemeID)
 	}
 
-	// Recommend unpracticed phonemes (prioritize easy ones first)
-	for _, phoneme := range allPhonemes {
-		if _, practiced := practicedMap[phoneme.ID]; !practiced {
-			recommendations = append(recommendations, PhonemeRecommendation{
-				Phoneme:       phoneme,
-				Reason:        "New phoneme to learn",
-				Priority:      5 - phoneme.Difficulty, // Higher priority for easier phonemes
-				EstimatedTime: phoneme.Difficulty * 5, // 5-25 minutes based on difficulty
-			})
+	if filter.Type != "" {
+		query = query.Where("type = ?", filter.Type)
+	}
+
+	if len(filter.Difficulty) > 0 {
+		query = query.Where("difficulty IN ?", filter.Difficulty)
+	}
+
+	if filter.LanguageID > 0 {
+		query = query.Joins("JOIN phonemes ON phonetic_exercises.phoneme_id = phonemes.id").
+			Where("phonemes.language_id = ?", filter.LanguageID)
+	}
+
+	query = query.Where("is_active = ?", true)
+
+	var total int64
+	query.Count(&total)
+
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	} else {
+		query = query.Limit(20)
+	}
+
+	if filter.Offset > 0 {
+		query = query.Offset(filter.Offset)
+	}
+
+	var exercises []PhoneticExercise
+	err := query.Order("difficulty ASC, title ASC").Find(&exercises).Error
+
+	return exercises, total, err
+}
+
+func (s *Service) GetExercise(ctx context.Context, id string) (*PhoneticExercise, error) {
+	var exercise PhoneticExercise
+	err := s.db.Preload("Phoneme").Where("id = ? AND is_active = ?", id, true).First(&exercise).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("exercise not found")
 		}
+		return nil, err
 	}
-
-	// Recommend weak phonemes for review
-	for _, progress := range userProgress {
-		averageScore := float64(progress.DiscriminationScore+progress.ProductionScore) / 2
-		if averageScore < 70 && progress.PracticeCount > 2 {
-			recommendations = append(recommendations, PhonemeRecommendation{
-				Phoneme:       progress.Phoneme,
-				Reason:        fmt.Sprintf("Needs improvement (%.1f%% accuracy)", averageScore),
-				Priority:      4, // High priority for weak phonemes
-				EstimatedTime: 10,
-			})
-		}
-	}
-
-	// Sort by priority (highest first)
-	for i := 0; i < len(recommendations)-1; i++ {
-		for j := i + 1; j < len(recommendations); j++ {
-			if recommendations[i].Priority < recommendations[j].Priority {
-				recommendations[i], recommendations[j] = recommendations[j], recommendations[i]
-			}
-		}
-	}
-
-	// Limit to top 5 recommendations
-	if len(recommendations) > 5 {
-		recommendations = recommendations[:5]
-	}
-
-	return recommendations
+	return &exercise, nil
 }
 
-func (s *Service) calculateExerciseScore(responses, exerciseData, exerciseType string) int {
-	// This is a simplified scoring system
-	// In a real implementation, you'd parse the exercise data and responses
-	// to calculate an accurate score based on the exercise type
-
-	switch exerciseType {
-	case "discrimination":
-		return s.calculateDiscriminationScore(responses, exerciseData)
-	case "production":
-		return s.calculateProductionScore(responses, exerciseData)
-	case "minimal_pairs":
-		return s.calculateMinimalPairsScore(responses, exerciseData)
-	default:
-		return 50 // Default score
+func (s *Service) StartExercise(ctx context.Context, userID string, exerciseID string) (*UserExerciseSession, error) {
+	// Verify exercise exists
+	_, err := s.GetExercise(ctx, exerciseID)
+	if err != nil {
+		return nil, err
 	}
+
+	session := UserExerciseSession{
+		UserID:     userID,
+		ExerciseID: exerciseID,
+		StartedAt:  time.Now(),
+	}
+
+	if err := s.db.Create(&session).Error; err != nil {
+		return nil, err
+	}
+
+	return &session, nil
 }
 
-func (s *Service) calculateDiscriminationScore(responses, exerciseData string) int {
-	// Parse responses and exercise data to calculate accuracy
-	// This is a placeholder implementation
-	return 75 // Example score
+func (s *Service) CompleteExercise(ctx context.Context, userID string, req ExerciseCompleteRequest) (*UserExerciseSession, error) {
+	var session UserExerciseSession
+	err := s.db.Where("id = ? AND user_id = ?", req.SessionID, userID).First(&session).Error
+	if err != nil {
+		return nil, errors.New("session not found")
+	}
+
+	if session.CompletedAt != nil {
+		return nil, errors.New("session already completed")
+	}
+
+	now := time.Now()
+	session.CompletedAt = &now
+	session.Score = req.Score
+	session.Accuracy = req.Accuracy
+	session.TimeSpent = req.TimeSpent
+	session.Responses = req.Responses
+
+	if err := s.db.Save(&session).Error; err != nil {
+		return nil, err
+	}
+
+	return &session, nil
 }
 
-func (s *Service) calculateProductionScore(responses, exerciseData string) int {
-	// For production exercises, you might analyze audio quality, pronunciation accuracy, etc.
-	// This is a placeholder implementation
-	return 80 // Example score
+// Minimal pairs
+func (s *Service) GetMinimalPairs(ctx context.Context, languageID int, phoneme1ID, phoneme2ID int) ([]MinimalPair, error) {
+	query := s.db.Where("language_id = ?", languageID)
+
+	if phoneme1ID > 0 && phoneme2ID > 0 {
+		query = query.Where("(phoneme1_id = ? AND phoneme2_id = ?) OR (phoneme1_id = ? AND phoneme2_id = ?)",
+			phoneme1ID, phoneme2ID, phoneme2ID, phoneme1ID)
+	} else if phoneme1ID > 0 {
+		query = query.Where("phoneme1_id = ? OR phoneme2_id = ?", phoneme1ID, phoneme1ID)
+	}
+
+	var pairs []MinimalPair
+	err := query.Preload("Phoneme1").Preload("Phoneme2").
+		Order("difficulty ASC").Find(&pairs).Error
+
+	return pairs, err
 }
 
-func (s *Service) calculateMinimalPairsScore(responses, exerciseData string) int {
-	// Calculate accuracy for minimal pairs identification
-	// This is a placeholder implementation
-	return 85 // Example score
-}
+// Statistics
+func (s *Service) GetPhoneticStats(ctx context.Context, userID string, languageID int) (*PhoneticStatsResponse, error) {
+	// Get total phonemes for language
+	var totalPhonemes int64
+	s.db.Model(&Phoneme{}).Where("language_id = ?", languageID).Count(&totalPhonemes)
 
-func (s *Service) generateExerciseFeedback(score int, exerciseType string) string {
-	feedback := make(map[string]interface{})
-
-	switch {
-	case score >= 90:
-		feedback["level"] = "excellent"
-		feedback["message"] = "Outstanding performance! You've mastered this exercise."
-	case score >= 80:
-		feedback["level"] = "good"
-		feedback["message"] = "Good work! You're making solid progress."
-	case score >= 70:
-		feedback["level"] = "fair"
-		feedback["message"] = "Fair performance. Keep practicing to improve."
-	case score >= 60:
-		feedback["level"] = "needs_improvement"
-		feedback["message"] = "This needs more practice. Focus on the difficult sounds."
-	default:
-		feedback["level"] = "poor"
-		feedback["message"] = "Don't give up! This is challenging but you'll improve with practice."
+	// Get user progress stats
+	var practiceStats struct {
+		PracticedCount int     `json:"practiced_count"`
+		MasteredCount  int     `json:"mastered_count"`
+		AvgScore       float64 `json:"avg_score"`
+		TotalTime      int     `json:"total_time"`
 	}
-
-	// Add exercise-specific tips
-	switch exerciseType {
-	case "discrimination":
-		feedback["tip"] = "Focus on listening to the subtle differences between sounds."
-	case "production":
-		feedback["tip"] = "Pay attention to tongue and lip position when making sounds."
-	case "minimal_pairs":
-		feedback["tip"] = "Listen for the contrasting sounds that change word meaning."
-	}
-
-	feedbackJSON, _ := json.Marshal(feedback)
-	return string(feedbackJSON)
-}
-
-func (s *Service) getPhonemesByPerformance(userID string, languageID int) ([]PhonemeWithScore, []PhonemeWithScore) {
-	var results []struct {
-		Phoneme             Phoneme
-		DiscriminationScore int
-		ProductionScore     int
-		PracticeCount       int
-	}
-
-	s.db.Table("user_phonetic_progress upp").
-		Select("phonemes.*, upp.discrimination_score, upp.production_score, upp.practice_count").
-		Joins("JOIN phonemes ON upp.phoneme_id = phonemes.id").
-		Where("upp.user_id = ? AND phonemes.language_id = ? AND upp.practice_count > 2", userID, languageID).
-		Scan(&results)
-
-	weakest := make([]PhonemeWithScore, 0)
-	strongest := make([]PhonemeWithScore, 0)
-
-	for _, result := range results {
-		averageScore := float64(result.DiscriminationScore+result.ProductionScore) / 2
-
-		phonemeWithScore := PhonemeWithScore{
-			Phoneme: result.Phoneme,
-			Score:   averageScore,
-		}
-
-		if averageScore < 70 {
-			weakest = append(weakest, phonemeWithScore)
-		} else if averageScore >= 85 {
-			strongest = append(strongest, phonemeWithScore)
-		}
-	}
-
-	// Sort weakest (lowest scores first)
-	for i := 0; i < len(weakest)-1; i++ {
-		for j := i + 1; j < len(weakest); j++ {
-			if weakest[i].Score > weakest[j].Score {
-				weakest[i], weakest[j] = weakest[j], weakest[i]
-			}
-		}
-	}
-
-	// Sort strongest (highest scores first)
-	for i := 0; i < len(strongest)-1; i++ {
-		for j := i + 1; j < len(strongest); j++ {
-			if strongest[i].Score < strongest[j].Score {
-				strongest[i], strongest[j] = strongest[j], strongest[i]
-			}
-		}
-	}
-
-	// Limit to top 5 each
-	if len(weakest) > 5 {
-		weakest = weakest[:5]
-	}
-	if len(strongest) > 5 {
-		strongest = strongest[:5]
-	}
-
-	return weakest, strongest
-}
-
-func (s *Service) getProgressByCategory(userID string, languageID int) map[string]CategoryProgress {
-	var results []struct {
-		Category          string
-		TotalPhonemes     int
-		MasteredCount     int
-		AvgDiscrimination float64
-		AvgProduction     float64
-	}
-
-	s.db.Raw(`
-       SELECT 
-           p.category,
-           COUNT(p.id) as total_phonemes,
-           COUNT(CASE WHEN upp.mastery_level >= 4 THEN 1 END) as mastered_count,
-           AVG(upp.discrimination_score) as avg_discrimination,
-           AVG(upp.production_score) as avg_production
-       FROM phonemes p
-       LEFT JOIN user_phonetic_progress upp ON p.id = upp.phoneme_id AND upp.user_id = ?
-       WHERE p.language_id = ?
-       GROUP BY p.category
-   `, userID, languageID).Scan(&results)
-
-	progress := make(map[string]CategoryProgress)
-	for _, result := range results {
-		averageScore := (result.AvgDiscrimination + result.AvgProduction) / 2
-
-		progress[result.Category] = CategoryProgress{
-			Category:      result.Category,
-			TotalPhonemes: result.TotalPhonemes,
-			MasteredCount: result.MasteredCount,
-			AverageScore:  averageScore,
-			TimeSpent:     0, // Would need to calculate from exercise sessions
-		}
-	}
-
-	return progress
-}
-
-func (s *Service) getWeeklyPhoneticProgress(userID string, languageID int, days int) []WeeklyPhoneticProgress {
-	var results []WeeklyPhoneticProgress
 
 	query := `
-       SELECT 
-           DATE_TRUNC('week', ues.completed_at) as week_start,
-           COUNT(ues.id) as sessions_count,
-           SUM(ues.duration) / 60 as total_time,
-           AVG(ues.score) as average_score
-       FROM user_exercise_sessions ues
-       JOIN phonetic_exercises pe ON ues.exercise_id = pe.id
-       WHERE ues.user_id = ? AND pe.language_id = ? 
-       AND ues.completed_at >= ?
-       GROUP BY DATE_TRUNC('week', ues.completed_at)
-       ORDER BY week_start DESC
-   `
+        SELECT 
+            COUNT(DISTINCT upp.phoneme_id) as practiced_count,
+            COUNT(CASE WHEN upp.mastery_level >= 4 THEN 1 END) as mastered_count,
+            AVG((upp.discrimination_score + upp.production_score) / 2.0) as avg_score,
+            SUM(COALESCE(sess.total_time, 0)) as total_time
+        FROM user_phonetic_progress upp
+        JOIN phonemes p ON upp.phoneme_id = p.id
+        LEFT JOIN (
+            SELECT exercise_id, SUM(time_spent) as total_time
+            FROM user_exercise_sessions 
+            WHERE user_id = ? AND completed_at IS NOT NULL
+            GROUP BY exercise_id
+        ) sess ON sess.exercise_id = upp.phoneme_id
+        WHERE upp.user_id = ? AND p.language_id = ?
+    `
 
-	startDate := time.Now().AddDate(0, 0, -days)
-	s.db.Raw(query, userID, languageID, startDate).Scan(&results)
+	s.db.Raw(query, userID, userID, languageID).Scan(&practiceStats)
 
-	// Format dates and add additional calculated fields
-	for i := range results {
-		// Calculate week end date (6 days after start)
-		weekStart, _ := time.Parse("2006-01-02", results[i].WeekStart)
-		weekEnd := weekStart.AddDate(0, 0, 6)
-		results[i].WeekEnd = weekEnd.Format("2006-01-02")
+	// Get weakest phonemes
+	weakestPhonemes := s.getWeakestPhonemes(userID, languageID, 5)
 
-		// These would need more complex queries to calculate accurately
-		results[i].NewPhonemes = 0
-		results[i].PerfectedPhonemes = 0
-	}
+	// Get recommended practice
+	recommendedPractice := s.getRecommendedPractice(userID, languageID, 5)
 
-	return results
-}
-
-// GetExerciseProgress returns user's overall exercise progress
-func (s *Service) GetExerciseProgress(ctx context.Context, userID string, languageID int) (*ExerciseProgressResponse, error) {
-	// Get total exercises for language
-	var totalExercises int64
-	s.db.Model(&PhoneticExercise{}).
-		Where("language_id = ? AND is_active = ?", languageID, true).
-		Count(&totalExercises)
-
-	// Get completed exercises
-	var completedExercises int64
-	s.db.Model(&UserExerciseSession{}).
-		Joins("JOIN phonetic_exercises ON user_exercise_sessions.exercise_id = phonetic_exercises.id").
-		Where("user_exercise_sessions.user_id = ? AND phonetic_exercises.language_id = ?", userID, languageID).
-		Count(&completedExercises)
-
-	// Get average score and total time
-	var stats struct {
-		AverageScore float64
-		TotalTime    int64
-	}
-
-	s.db.Model(&UserExerciseSession{}).
-		Select("AVG(score) as average_score, SUM(duration) as total_time").
-		Joins("JOIN phonetic_exercises ON user_exercise_sessions.exercise_id = phonetic_exercises.id").
-		Where("user_exercise_sessions.user_id = ? AND phonetic_exercises.language_id = ?", userID, languageID).
-		Scan(&stats)
-
-	// Get last practice date
-	var lastPracticeDate *time.Time
-	s.db.Model(&UserExerciseSession{}).
-		Select("MAX(completed_at)").
-		Joins("JOIN phonetic_exercises ON user_exercise_sessions.exercise_id = phonetic_exercises.id").
-		Where("user_exercise_sessions.user_id = ? AND phonetic_exercises.language_id = ?", userID, languageID).
-		Scan(&lastPracticeDate)
-
-	// Calculate streak days (simplified)
-	streakDays := 0
-	if lastPracticeDate != nil && time.Since(*lastPracticeDate).Hours() < 48 {
-		streakDays = s.calculatePhoneticStreakDays(userID, languageID)
-	}
-
-	return &ExerciseProgressResponse{
-		TotalExercises:     int(totalExercises),
-		CompletedExercises: int(completedExercises),
-		AverageScore:       stats.AverageScore,
-		TotalTime:          int(stats.TotalTime),
-		StreakDays:         streakDays,
-		LastPracticeDate:   lastPracticeDate,
+	return &PhoneticStatsResponse{
+		LanguageID:          languageID,
+		TotalPhonemes:       int(totalPhonemes),
+		PracticedPhonemes:   practiceStats.PracticedCount,
+		MasteredPhonemes:    practiceStats.MasteredCount,
+		AverageScore:        practiceStats.AvgScore,
+		TotalPracticeTime:   practiceStats.TotalTime / 60, // Convert to minutes
+		WeakestPhonemes:     weakestPhonemes,
+		RecommendedPractice: recommendedPractice,
 	}, nil
 }
 
-func (s *Service) calculatePhoneticStreakDays(userID string, languageID int) int {
-	// Simplified streak calculation
-	// In reality, you'd check for consecutive days of activity
-	var activeDays int64
-	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+func (s *Service) getWeakestPhonemes(userID string, languageID int, limit int) []PhoneticProgressResponse {
+	var progress []UserPhoneticProgress
 
-	s.db.Model(&UserExerciseSession{}).
-		Joins("JOIN phonetic_exercises ON user_exercise_sessions.exercise_id = phonetic_exercises.id").
-		Where("user_exercise_sessions.user_id = ? AND phonetic_exercises.language_id = ? AND user_exercise_sessions.completed_at >= ?",
-			userID, languageID, sevenDaysAgo).
-		Select("COUNT(DISTINCT DATE(completed_at))").
-		Scan(&activeDays)
+	query := `
+        SELECT upp.*, p.symbol
+        FROM user_phonetic_progress upp
+        JOIN phonemes p ON upp.phoneme_id = p.id
+        WHERE upp.user_id = ? AND p.language_id = ? AND upp.practice_count > 0
+        ORDER BY (upp.discrimination_score + upp.production_score) / 2.0 ASC
+        LIMIT ?
+    `
 
-	return int(activeDays)
+	s.db.Raw(query, userID, languageID, limit).Scan(&progress)
+
+	result := make([]PhoneticProgressResponse, len(progress))
+	for i, p := range progress {
+		result[i] = PhoneticProgressResponse{
+			PhonemeID:           p.PhonemeID,
+			Symbol:              p.Phoneme.Symbol,
+			DiscriminationScore: p.DiscriminationScore,
+			ProductionScore:     p.ProductionScore,
+			MasteryLevel:        p.MasteryLevel,
+			PracticeCount:       p.PracticeCount,
+			LastPracticedAt:     p.LastPracticedAt,
+			RecommendedNext:     true,
+		}
+	}
+
+	return result
+}
+
+func (s *Service) getRecommendedPractice(userID string, languageID int, limit int) []PhoneticProgressResponse {
+	var progress []UserPhoneticProgress
+
+	// Get phonemes that haven't been practiced recently or need more practice
+	query := `
+        SELECT upp.*, p.symbol
+        FROM user_phonetic_progress upp
+        JOIN phonemes p ON upp.phoneme_id = p.id
+        WHERE upp.user_id = ? AND p.language_id = ? 
+        AND (upp.last_practiced_at IS NULL OR upp.last_practiced_at < ? OR upp.mastery_level < 3)
+        ORDER BY 
+            CASE WHEN upp.last_practiced_at IS NULL THEN 0 ELSE 1 END,
+            upp.last_practiced_at ASC,
+            upp.mastery_level ASC
+        LIMIT ?
+    `
+
+	threeDaysAgo := time.Now().AddDate(0, 0, -3)
+	s.db.Raw(query, userID, languageID, threeDaysAgo, limit).Scan(&progress)
+
+	result := make([]PhoneticProgressResponse, len(progress))
+	for i, p := range progress {
+		result[i] = PhoneticProgressResponse{
+			PhonemeID:           p.PhonemeID,
+			Symbol:              p.Phoneme.Symbol,
+			DiscriminationScore: p.DiscriminationScore,
+			ProductionScore:     p.ProductionScore,
+			MasteryLevel:        p.MasteryLevel,
+			PracticeCount:       p.PracticeCount,
+			LastPracticedAt:     p.LastPracticedAt,
+			RecommendedNext:     true,
+		}
+	}
+
+	return result
+}
+
+// Data seeding helpers
+func (s *Service) SeedPhonemes(ctx context.Context, languageID int, phonemes []Phoneme) error {
+	for _, phoneme := range phonemes {
+		phoneme.LanguageID = languageID
+
+		var existing Phoneme
+		err := s.db.Where("language_id = ? AND symbol = ?", languageID, phoneme.Symbol).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := s.db.Create(&phoneme).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) GetUserSessions(ctx context.Context, userID string, limit, offset int) ([]UserExerciseSession, error) {
+	var sessions []UserExerciseSession
+	err := s.db.Preload("Exercise").
+		Where("user_id = ?", userID).
+		Order("started_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&sessions).Error
+
+	return sessions, err
+}
+
+func (s *Service) GetRecommendations(ctx context.Context, userID string, languageID int, limit int) ([]PhoneticProgressResponse, error) {
+	// Get phonemes that need practice based on user progress
+	var progress []UserPhoneticProgress
+
+	query := `
+        SELECT DISTINCT ON (p.id) p.id as phoneme_id, p.symbol, 
+               COALESCE(upp.discrimination_score, 0) as discrimination_score,
+               COALESCE(upp.production_score, 0) as production_score,
+               COALESCE(upp.mastery_level, 0) as mastery_level,
+               COALESCE(upp.practice_count, 0) as practice_count,
+               upp.last_practiced_at
+        FROM phonemes p
+        LEFT JOIN user_phonetic_progress upp ON p.id = upp.phoneme_id AND upp.user_id = ?
+        WHERE p.language_id = ? 
+        AND (upp.mastery_level IS NULL OR upp.mastery_level < 3 OR upp.last_practiced_at < ?)
+        ORDER BY p.id, COALESCE(upp.mastery_level, -1) ASC, COALESCE(upp.last_practiced_at, '1970-01-01') ASC
+        LIMIT ?
+    `
+
+	threeDaysAgo := time.Now().AddDate(0, 0, -3)
+	err := s.db.Raw(query, userID, languageID, threeDaysAgo, limit).Scan(&progress).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]PhoneticProgressResponse, len(progress))
+	for i, p := range progress {
+		result[i] = PhoneticProgressResponse{
+			PhonemeID:           p.PhonemeID,
+			Symbol:              p.Phoneme.Symbol,
+			DiscriminationScore: p.DiscriminationScore,
+			ProductionScore:     p.ProductionScore,
+			MasteryLevel:        p.MasteryLevel,
+			PracticeCount:       p.PracticeCount,
+			LastPracticedAt:     p.LastPracticedAt,
+			RecommendedNext:     true,
+		}
+	}
+
+	return result, nil
+}
+
+func (s *Service) GetWeakPhonemes(ctx context.Context, userID string, languageID int, limit int) ([]PhoneticProgressResponse, error) {
+	return s.getWeakestPhonemes(userID, languageID, limit), nil
+}
+
+func (s *Service) GetPracticePlan(ctx context.Context, userID string, languageID int) (*PracticePlan, error) {
+	var plan PracticePlan
+	err := s.db.Where("user_id = ? AND language_id = ? AND is_active = ?", userID, languageID, true).
+		First(&plan).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("no active practice plan found")
+	}
+
+	return &plan, err
+}
+
+func (s *Service) CreatePracticePlan(ctx context.Context, userID string, req CreatePracticePlanRequest) (*PracticePlan, error) {
+	// Deactivate any existing plans
+	s.db.Model(&PracticePlan{}).
+		Where("user_id = ? AND language_id = ?", userID, req.LanguageID).
+		Update("is_active", false)
+
+	// Convert focus areas to JSON
+	focusAreasJSON, err := json.Marshal(req.FocusAreas)
+	if err != nil {
+		return nil, err
+	}
+
+	plan := PracticePlan{
+		UserID:            userID,
+		LanguageID:        req.LanguageID,
+		Name:              req.Name,
+		Description:       req.Description,
+		DurationWeeks:     req.DurationWeeks,
+		SessionsPerWeek:   req.SessionsPerWeek,
+		MinutesPerSession: req.MinutesPerSession,
+		FocusAreas:        string(focusAreasJSON),
+		IsActive:          true,
+	}
+
+	if err := s.db.Create(&plan).Error; err != nil {
+		return nil, err
+	}
+
+	return &plan, nil
 }
