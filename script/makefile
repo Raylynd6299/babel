@@ -86,15 +86,6 @@ endif
 	@echo "Running $(SERVICE) with hot reload..."
 	air -c .air.$(SERVICE).toml
 
-# Database operations
-migrate:
-	@echo "Running database migrations..."
-	go run ./cmd/migrate
-
-seed:
-	@echo "Seeding database..."
-	go run ./cmd/seed
-
 # Linting
 lint:
 	@echo "Running linter..."

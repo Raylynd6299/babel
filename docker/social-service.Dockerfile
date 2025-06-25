@@ -1,4 +1,4 @@
-# docker/auth-service.Dockerfile
+# docker/social-service.Dockerfile
 FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auth-service ./cmd/auth-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o social-service ./cmd/social-service
 
 # Final stage
 FROM alpine:latest
@@ -20,10 +20,10 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /root/
 
 # Copy the binary
-COPY --from=builder /app/auth-service .
+COPY --from=builder /app/social-service .
 
 # Expose port
-EXPOSE 8001
+EXPOSE 8006
 
 # Run the application
-CMD ["./auth-service"]
+CMD ["./social-service"]

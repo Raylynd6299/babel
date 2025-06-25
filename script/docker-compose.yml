@@ -10,7 +10,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -61,7 +60,7 @@ services:
   # API Gateway
   api-gateway:
     build:
-      context: .
+      context: ..
       dockerfile: docker/api-gateway.Dockerfile
     ports:
       - "8080:8080"
@@ -83,7 +82,7 @@ services:
   # Auth Service
   auth-service:
     build:
-      context: .
+      context: ..
       dockerfile: docker/auth-service.Dockerfile
     ports:
       - "8001:8001"
@@ -102,7 +101,7 @@ services:
   # Content Service
   content-service:
     build:
-      context: .
+      context: ..
       dockerfile: docker/content-service.Dockerfile
     ports:
       - "8002:8002"
@@ -123,7 +122,7 @@ services:
   # Progress Service
   progress-service:
     build:
-      context: .
+      context: ..
       dockerfile: docker/progress-service.Dockerfile
     ports:
       - "8003:8003"
@@ -142,7 +141,7 @@ services:
   # Vocabulary Service
   vocabulary-service:
     build:
-      context: .
+      context: ..
       dockerfile: docker/vocabulary-service.Dockerfile
     ports:
       - "8004:8004"
