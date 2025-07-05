@@ -1,4 +1,3 @@
-// pkg/gateway/middleware.go
 package gateway
 
 import (

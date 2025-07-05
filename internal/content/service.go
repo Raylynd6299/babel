@@ -40,20 +40,6 @@ func (s *Service) CreateContent(ctx context.Context, req CreateContentRequest, u
 		return nil, err
 	}
 
-	// Create episodes if it's a series
-	if req.ContentType == "series" && req.TotalEpisodes > 1 {
-		episodes := make([]ContentEpisode, req.TotalEpisodes)
-
-		for episode_index := 0; episode_index < req.TotalEpisodes; episode_index++ {
-			episodes[episode_index] = ContentEpisode{
-				ContentID:       content.ID,
-				EpisodeNumber:   episode_index + 1,
-				SeasonNumber:    1,
-				DurationMinutes: req.AverageEpisodeDuration,
-			}
-		}
-	}
-
 	return &content, nil
 }
 

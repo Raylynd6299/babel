@@ -1,4 +1,3 @@
-// pkg/gateway/routes.go
 package gateway
 
 import (
@@ -6,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
