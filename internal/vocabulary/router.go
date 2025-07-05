@@ -606,37 +606,229 @@ func (r *Router) ApplySRSPreset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "SRS preset applied successfully"})
 }
 
-// Placeholder methods for vocabulary lists and bulk operations
+// Vocabulary Lists handlers
 func (r *Router) GetVocabularyLists(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	languageID := 0
+	if lang := c.Query("language_id"); lang != "" {
+		if id, err := strconv.Atoi(lang); err == nil {
+			languageID = id
+		}
+	}
+
+	lists, err := r.service.GetVocabularyLists(c.Request.Context(), userID, languageID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"lists": lists})
 }
 
 func (r *Router) CreateVocabularyList(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req CreateVocabularyListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := r.validator.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	list, err := r.service.CreateVocabularyList(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Vocabulary list created successfully",
+		"list":    list,
+	})
 }
 
 func (r *Router) GetVocabularyList(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	listID := c.Param("list_id")
+	if listID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List ID required"})
+		return
+	}
+
+	list, err := r.service.GetVocabularyList(c.Request.Context(), userID, listID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"list": list})
 }
 
 func (r *Router) UpdateVocabularyList(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	listID := c.Param("list_id")
+	if listID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List ID required"})
+		return
+	}
+
+	var req UpdateVocabularyListRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := r.validator.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	list, err := r.service.UpdateVocabularyList(c.Request.Context(), userID, listID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Vocabulary list updated successfully",
+		"list":    list,
+	})
 }
 
 func (r *Router) DeleteVocabularyList(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	listID := c.Param("list_id")
+	if listID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "List ID required"})
+		return
+	}
+
+	err := r.service.DeleteVocabularyList(c.Request.Context(), userID, listID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Vocabulary list deleted successfully"})
 }
 
+// Bulk Operations handlers
 func (r *Router) BulkAddVocabulary(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req BulkAddVocabularyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := r.validator.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := r.service.BulkAddVocabulary(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Bulk add operation completed",
+		"result":  result,
+	})
 }
 
 func (r *Router) BulkDeleteVocabulary(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req BulkDeleteVocabularyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := r.validator.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := r.service.BulkDeleteVocabulary(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Bulk delete operation completed",
+		"result":  result,
+	})
 }
 
 func (r *Router) BulkResetProgress(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Feature not implemented yet"})
+	userID, exists := polyfyjwt.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req BulkResetProgressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := r.validator.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := r.service.BulkResetProgress(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Bulk reset operation completed",
+		"result":  result,
+	})
 }
 
 // Middleware

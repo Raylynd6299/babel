@@ -41,6 +41,9 @@ func migrateVocabularyDatabase(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&vocabulary.Vocabulary{},
 		&vocabulary.UserVocabulary{},
+		&vocabulary.UserSRSConfig{},
+		&vocabulary.VocabularyList{},
+		&vocabulary.VocabularyListItem{},
 	); err != nil {
 		return err
 	}
