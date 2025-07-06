@@ -80,11 +80,25 @@ services:
       - CONTENT_SERVICE_URL=${CONTENT_SERVICE_URL}
       - PROGRESS_SERVICE_URL=${PROGRESS_SERVICE_URL}
       - VOCABULARY_SERVICE_URL=${VOCABULARY_SERVICE_URL}
+      - PHONETIC_SERVICE_URL=${PHONETIC_SERVICE_URL}
+      - SOCIAL_SERVICE_URL=${SOCIAL_SERVICE_URL}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      content-service:
+        condition: service_started
+      progress-service:
+        condition: service_started
+      vocabulary-service:
+        condition: service_started
+      phonetic-service:
+        condition: service_started
+      social-service:
+        condition: service_started
     restart: unless-stopped
 
   # Auth Service
@@ -165,6 +179,47 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - PORT=${VOCABULARY_SERVICE_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Phonetic Service
+  phonetic-service:
+    build:
+      context: ..
+      dockerfile: docker/phonetic-service.Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${PHONETIC_SERVICE_PORT}:8005"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - PORT=${PHONETIC_SERVICE_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Social Service
+  social-service:
+    build:
+      context: ..
+      dockerfile: docker/social-service.Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${SOCIAL_SERVICE_PORT}:8006"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=${SOCIAL_SERVICE_PORT}
     depends_on:
       postgres:
         condition: service_healthy
