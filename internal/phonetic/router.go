@@ -7,8 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
+
+	_ "github.com/Raylynd6299/babel/cmd/phonetic-service/docs"
 )
 
 type Router struct {
@@ -39,6 +43,9 @@ func NewRouter(service *Service) *gin.Engine {
 		validator:  validator.New(),
 		jwtService: jwtService,
 	}
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("phonetic")))
 
 	v1 := router.Group("/api/v1")
 
@@ -78,7 +85,17 @@ func NewRouter(service *Service) *gin.Engine {
 	return router
 }
 
-// Public handlers
+// GetPhonemes godoc
+// @Summary      Get phonemes by language
+// @Description  Get all phonemes for a specific language with IPA symbols and articulation details
+// @Tags         phonemes
+// @Accept       json
+// @Produce      json
+// @Param        language_id path int true "Language ID (1=English, 2=Spanish)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /phonetic/languages/{language_id}/phonemes [get]
 func (r *Router) GetPhonemes(c *gin.Context) {
 	languageIDStr := c.Param("language_id")
 	languageID, err := strconv.Atoi(languageIDStr)
@@ -96,6 +113,17 @@ func (r *Router) GetPhonemes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"phonemes": phonemes})
 }
 
+// GetPhoneme godoc
+// @Summary      Get specific phoneme
+// @Description  Get detailed information about a specific phoneme by ID
+// @Tags         phonemes
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Phoneme ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Router       /phonetic/phonemes/{id} [get]
 func (r *Router) GetPhoneme(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -113,6 +141,19 @@ func (r *Router) GetPhoneme(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"phoneme": phoneme})
 }
 
+// GetMinimalPairs godoc
+// @Summary      Get minimal pairs
+// @Description  Get minimal pairs for phonetic contrast practice, optionally filtered by specific phonemes
+// @Tags         phonemes
+// @Accept       json
+// @Produce      json
+// @Param        language_id path int true "Language ID (1=English, 2=Spanish)"
+// @Param        phoneme1_id query int false "First phoneme ID for filtering"
+// @Param        phoneme2_id query int false "Second phoneme ID for filtering"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /phonetic/languages/{language_id}/minimal-pairs [get]
 func (r *Router) GetMinimalPairs(c *gin.Context) {
 	languageIDStr := c.Param("language_id")
 	languageID, err := strconv.Atoi(languageIDStr)
@@ -144,6 +185,20 @@ func (r *Router) GetMinimalPairs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"minimal_pairs": pairs})
 }
 
+// GetExercises godoc
+// @Summary      Get phonetic exercises
+// @Description  Get paginated list of phonetic exercises with optional filtering
+// @Tags         exercises
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID for filtering"
+// @Param        phoneme_id query int false "Phoneme ID for filtering"
+// @Param        type query string false "Exercise type (pronunciation, listening, minimal_pairs)"
+// @Param        limit query int false "Number of items to return (max 100)" default(20)
+// @Param        offset query int false "Number of items to skip" default(0)
+// @Success      200 {object} map[string]interface{}
+// @Failure      500 {object} map[string]string
+// @Router       /phonetic/exercises [get]
 func (r *Router) GetExercises(c *gin.Context) {
 	filter := ExerciseFilter{
 		Limit:  20,
@@ -193,6 +248,17 @@ func (r *Router) GetExercises(c *gin.Context) {
 	})
 }
 
+// GetExercise godoc
+// @Summary      Get specific exercise
+// @Description  Get detailed information about a specific phonetic exercise by ID
+// @Tags         exercises
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Exercise ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Router       /phonetic/exercises/{id} [get]
 func (r *Router) GetExercise(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -209,7 +275,19 @@ func (r *Router) GetExercise(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"exercise": exercise})
 }
 
-// Protected handlers
+// GetUserProgress godoc
+// @Summary      Get user phonetic progress
+// @Description  Get detailed phonetic progress for a user in a specific language
+// @Tags         progress
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID (1=English, 2=Spanish)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/progress [get]
 func (r *Router) GetUserProgress(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -238,6 +316,18 @@ func (r *Router) GetUserProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"progress": progress})
 }
 
+// PracticePhoneme godoc
+// @Summary      Record phoneme practice
+// @Description  Record a phoneme practice session with accuracy and feedback data
+// @Tags         progress
+// @Accept       json
+// @Produce      json
+// @Param        request body PracticePhonemeRequest true "Practice session data"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/practice [post]
 func (r *Router) PracticePhoneme(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -265,6 +355,19 @@ func (r *Router) PracticePhoneme(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Practice recorded successfully"})
 }
 
+// GetPhoneticStats godoc
+// @Summary      Get phonetic statistics
+// @Description  Get comprehensive phonetic statistics and analytics for a user in a specific language
+// @Tags         progress
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID (1=English, 2=Spanish)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/stats [get]
 func (r *Router) GetPhoneticStats(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -293,6 +396,18 @@ func (r *Router) GetPhoneticStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
+// StartExercise godoc
+// @Summary      Start exercise session
+// @Description  Start a new phonetic exercise session for a user
+// @Tags         sessions
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Exercise ID"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/exercises/{id}/start [post]
 func (r *Router) StartExercise(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -315,6 +430,19 @@ func (r *Router) StartExercise(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"session": session})
 }
 
+// CompleteExercise godoc
+// @Summary      Complete exercise session
+// @Description  Complete a phonetic exercise session with results and feedback
+// @Tags         sessions
+// @Accept       json
+// @Produce      json
+// @Param        session_id path string true "Session ID"
+// @Param        request body ExerciseCompleteRequest true "Exercise completion data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/sessions/{session_id}/complete [post]
 func (r *Router) CompleteExercise(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -354,6 +482,19 @@ func (r *Router) CompleteExercise(c *gin.Context) {
 	})
 }
 
+// GetUserSessions godoc
+// @Summary      Get user exercise sessions
+// @Description  Get paginated list of user's exercise sessions with history and results
+// @Tags         sessions
+// @Accept       json
+// @Produce      json
+// @Param        limit query int false "Number of items to return (max 100)" default(20)
+// @Param        offset query int false "Number of items to skip" default(0)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/sessions [get]
 func (r *Router) GetUserSessions(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -384,6 +525,20 @@ func (r *Router) GetUserSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
 }
 
+// GetRecommendations godoc
+// @Summary      Get phonetic recommendations
+// @Description  Get personalized phonetic exercise recommendations based on user's weak areas
+// @Tags         recommendations
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID (1=English, 2=Spanish)"
+// @Param        limit query int false "Number of recommendations to return (max 20)" default(5)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/recommendations [get]
 func (r *Router) GetRecommendations(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -419,6 +574,20 @@ func (r *Router) GetRecommendations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"recommendations": recommendations})
 }
 
+// GetWeakPhonemes godoc
+// @Summary      Get weak phonemes
+// @Description  Get phonemes that the user needs to practice based on performance analytics
+// @Tags         recommendations
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID (1=English, 2=Spanish)"
+// @Param        limit query int false "Number of weak phonemes to return (max 20)" default(5)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/weak-phonemes [get]
 func (r *Router) GetWeakPhonemes(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -454,6 +623,19 @@ func (r *Router) GetWeakPhonemes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"weak_phonemes": weakPhonemes})
 }
 
+// GetPracticePlan godoc
+// @Summary      Get practice plan
+// @Description  Get current personalized practice plan for a user in a specific language
+// @Tags         practice-plans
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID (1=English, 2=Spanish)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/practice-plan [get]
 func (r *Router) GetPracticePlan(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -482,6 +664,18 @@ func (r *Router) GetPracticePlan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"practice_plan": plan})
 }
 
+// CreatePracticePlan godoc
+// @Summary      Create practice plan
+// @Description  Create a new personalized practice plan with custom goals and schedule
+// @Tags         practice-plans
+// @Accept       json
+// @Produce      json
+// @Param        request body CreatePracticePlanRequest true "Practice plan data"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /phonetic/practice-plan [post]
 func (r *Router) CreatePracticePlan(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {

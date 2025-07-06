@@ -1,3 +1,23 @@
+// @title           Polyfy Vocabulary Service API
+// @version         1.0
+// @description     Vocabulary management and SRS (Spaced Repetition System) service for Polyfy language learning platform
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8004
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 package main
 
 import (
@@ -5,9 +25,9 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/Raylynd6299/babel/internal/vocabulary"
 	"github.com/Raylynd6299/babel/internal/shared/config"
 	"github.com/Raylynd6299/babel/internal/shared/database"
-	"github.com/Raylynd6299/babel/internal/vocabulary"
 )
 
 func main() {
@@ -28,6 +48,7 @@ func main() {
 	log.Println("Vocabulary database migration completed successfully")
 
 	vocabularyService := vocabulary.NewService(db, cfg.JWTSecret)
+
 	router := vocabulary.NewRouter(vocabularyService)
 
 	log.Printf("Vocabulary service starting on port %s", cfg.Port)
@@ -41,9 +62,8 @@ func migrateVocabularyDatabase(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&vocabulary.Vocabulary{},
 		&vocabulary.UserVocabulary{},
-		&vocabulary.UserSRSConfig{},
 		&vocabulary.VocabularyList{},
-		&vocabulary.VocabularyListItem{},
+		&vocabulary.UserSRSConfig{},
 	); err != nil {
 		return err
 	}

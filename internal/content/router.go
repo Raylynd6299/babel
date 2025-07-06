@@ -8,8 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
+
+	_ "github.com/Raylynd6299/babel/cmd/content-service/docs"
 )
 
 type Router struct {
@@ -42,6 +46,9 @@ func NewRouter(service *Service) *gin.Engine {
 		jwtService: jwtService,
 	}
 
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("content")))
+
 	v1 := router.Group("/api/v1")
 
 	// Public route (read-only)
@@ -70,7 +77,18 @@ func NewRouter(service *Service) *gin.Engine {
 	return router
 }
 
-// Content CRUD handlers
+// CreateContent godoc
+// @Summary      Create new content
+// @Description  Create a new piece of content (movie, series, etc.)
+// @Tags         content
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateContentRequest true "Content data"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content [post]
 func (r *Router) CreateContent(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -98,6 +116,17 @@ func (r *Router) CreateContent(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"content": content})
 }
 
+// GetContent godoc
+// @Summary      Get content by ID
+// @Description  Get detailed information about a specific content item
+// @Tags         content
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Router       /content/{id} [get]
 func (r *Router) GetContent(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -114,6 +143,19 @@ func (r *Router) GetContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"content": content})
 }
 
+// UpdateContent godoc
+// @Summary      Update content
+// @Description  Update an existing content item
+// @Tags         content
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Param        request body CreateContentRequest true "Content update data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id} [put]
 func (r *Router) UpdateContent(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -147,6 +189,18 @@ func (r *Router) UpdateContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"content": content})
 }
 
+// DeleteContent godoc
+// @Summary      Delete content
+// @Description  Delete an existing content item
+// @Tags         content
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id} [delete]
 func (r *Router) DeleteContent(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -169,6 +223,19 @@ func (r *Router) DeleteContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Content deleted successfully"})
 }
 
+// RateContent godoc
+// @Summary      Rate content
+// @Description  Rate a content item with difficulty, usefulness and entertainment ratings
+// @Tags         ratings
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Param        request body RateContentRequest true "Rating data"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id}/rate [post]
 func (r *Router) RateContent(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -211,6 +278,29 @@ func (r *Router) RateContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Content rated successfully"})
 }
 
+// GetContentList godoc
+// @Summary      Get content list
+// @Description  Get a paginated list of content with filtering options
+// @Tags         content
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID"
+// @Param        content_type query string false "Content type (movie, series, etc.)"
+// @Param        genre query string false "Genre"
+// @Param        country query string false "Country"
+// @Param        min_rating query number false "Minimum rating"
+// @Param        max_rating query number false "Maximum rating"
+// @Param        difficulty query string false "Difficulty levels (comma-separated)"
+// @Param        year_from query int false "Year from"
+// @Param        year_to query int false "Year to"
+// @Param        search query string false "Search term"
+// @Param        limit query int false "Limit (max 100)" default(20)
+// @Param        offset query int false "Offset" default(0)
+// @Param        sort_by query string false "Sort by field"
+// @Param        sort_direction query string false "Sort direction (asc/desc)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      500 {object} map[string]string
+// @Router       /content [get]
 func (r *Router) GetContentList(c *gin.Context) {
 	filter := ContentFilter{
 		Limit:  20,
@@ -308,7 +398,16 @@ func (r *Router) GetContentList(c *gin.Context) {
 	})
 }
 
-// Episode handlers
+// GetContentEpisodes godoc
+// @Summary      Get content episodes
+// @Description  Get all episodes for a specific content item
+// @Tags         episodes
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Router       /content/{id}/episodes [get]
 func (r *Router) GetContentEpisodes(c *gin.Context) {
 	contentID := c.Param("id")
 	if contentID == "" {
@@ -325,6 +424,19 @@ func (r *Router) GetContentEpisodes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"episodes": episodes})
 }
 
+// CreateEpisode godoc
+// @Summary      Create episode
+// @Description  Create a new episode for a content item
+// @Tags         episodes
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Param        request body CreateEpisodeRequest true "Episode data"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id}/episodes [post]
 func (r *Router) CreateEpisode(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -358,6 +470,20 @@ func (r *Router) CreateEpisode(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"episode": episode})
 }
 
+// UpdateEpisode godoc
+// @Summary      Update episode
+// @Description  Update an existing episode
+// @Tags         episodes
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Param        episode_id path string true "Episode ID"
+// @Param        request body CreateEpisodeRequest true "Episode update data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id}/episodes/{episode_id} [put]
 func (r *Router) UpdateEpisode(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -391,6 +517,19 @@ func (r *Router) UpdateEpisode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"episode": episode})
 }
 
+// DeleteEpisode godoc
+// @Summary      Delete episode
+// @Description  Delete an existing episode
+// @Tags         episodes
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Content ID"
+// @Param        episode_id path string true "Episode ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/{id}/episodes/{episode_id} [delete]
 func (r *Router) DeleteEpisode(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -413,7 +552,15 @@ func (r *Router) DeleteEpisode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Episode deleted successfully"})
 }
 
-// Other handlers
+// GetLanguages godoc
+// @Summary      Get available languages
+// @Description  Get list of all available languages
+// @Tags         languages
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      500 {object} map[string]string
+// @Router       /content/languages [get]
 func (r *Router) GetLanguages(c *gin.Context) {
 	languages, err := r.service.GetLanguages(c.Request.Context())
 	if err != nil {
@@ -424,6 +571,19 @@ func (r *Router) GetLanguages(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"languages": languages})
 }
 
+// GetRecommendations godoc
+// @Summary      Get content recommendations
+// @Description  Get personalized content recommendations for the user
+// @Tags         recommendations
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID for filtering"
+// @Param        limit query int false "Number of recommendations (max 50)" default(10)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /content/recommendations [get]
 func (r *Router) GetRecommendations(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {

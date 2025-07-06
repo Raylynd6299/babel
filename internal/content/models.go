@@ -23,7 +23,7 @@ type Content struct {
 	DifficultyLevel        string         `json:"difficulty_level"`
 	CreatedBy              string         `json:"created_by"`
 	CreatedAt              time.Time      `json:"created_at"`
-	DeletedAt              gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	DeletedAt              gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index" swaggerignore:"true"`
 	UpdatedAt              time.Time      `json:"updated_at"`
 	IsVerified             bool           `json:"is_verified" gorm:"default:false"`
 	ViewCount              int            `json:"view_count" gorm:"default:0"`

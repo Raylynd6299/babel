@@ -20,6 +20,9 @@ func NewService(db *gorm.DB, jwtSecret string) *Service {
 	}
 }
 
+func (s *Service) GetDB() *gorm.DB {
+	return s.db
+}
 func (s *Service) CreateContent(ctx context.Context, req CreateContentRequest, userID string) (*Content, error) {
 	content := Content{
 		Title:                  req.Title,

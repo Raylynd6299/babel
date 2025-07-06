@@ -1,0 +1,549 @@
+basePath: /api/v1
+definitions:
+  progress.LogInputRequest:
+    properties:
+      completed:
+        type: boolean
+      comprehension_percentage:
+        maximum: 100
+        minimum: 0
+        type: integer
+      content_id:
+        type: string
+      difficulty_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      duration_minutes:
+        minimum: 1
+        type: integer
+      enjoyment_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      episode_id:
+        type: string
+      language_id:
+        description: Add this field
+        type: integer
+      notes:
+        type: string
+    required:
+    - content_id
+    - duration_minutes
+    type: object
+  progress.SetGoalsRequest:
+    properties:
+      daily_goal_minutes:
+        maximum: 1440
+        minimum: 1
+        type: integer
+      language_id:
+        type: integer
+      monthly_goal_hours:
+        maximum: 744
+        minimum: 1
+        type: integer
+      weekly_goal_hours:
+        maximum: 168
+        minimum: 1
+        type: integer
+    required:
+    - daily_goal_minutes
+    - language_id
+    - monthly_goal_hours
+    - weekly_goal_hours
+    type: object
+host: localhost:8003
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Progress tracking and analytics service for Polyfy language learning
+    platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Polyfy Progress Service API
+  version: "1.0"
+paths:
+  /progress/analytics:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed analytics and trends for user progress over time
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 30
+        description: Number of days to analyze (max 365)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get progress analytics
+      tags:
+      - analytics
+  /progress/calendar:
+    get:
+      consumes:
+      - application/json
+      description: Get study activity data for calendar visualization
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - description: Year (2020-2030)
+        in: query
+        name: year
+        type: integer
+      - description: Month (1-12)
+        in: query
+        name: month
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get calendar data
+      tags:
+      - calendar
+  /progress/goals:
+    get:
+      consumes:
+      - application/json
+      description: Get current learning goals and progress for a language
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get learning goals
+      tags:
+      - goals
+    post:
+      consumes:
+      - application/json
+      description: Set daily, weekly, and monthly learning goals for a language
+      parameters:
+      - description: Goals data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/progress.SetGoalsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set learning goals
+      tags:
+      - goals
+  /progress/history:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated history of user's study sessions
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 20
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get progress history
+      tags:
+      - history
+  /progress/input:
+    post:
+      consumes:
+      - application/json
+      description: Log a study session with content consumption data
+      parameters:
+      - description: Study session data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/progress.LogInputRequest'
+      - description: Language ID (can also be in request body)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log study input
+      tags:
+      - input
+  /progress/monthly-report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive monthly progress report with detailed analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get monthly report
+      tags:
+      - reports
+  /progress/recent:
+    get:
+      consumes:
+      - application/json
+      description: Get user's recent study activity across all languages
+      parameters:
+      - default: 10
+        description: Number of activities to return (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get recent activity
+      tags:
+      - activity
+  /progress/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get aggregated study sessions data for a specific time period
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 7
+        description: Number of days to look back (max 90)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get study sessions
+      tags:
+      - sessions
+  /progress/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for a user in a specific language
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user statistics
+      tags:
+      - statistics
+  /progress/streak:
+    get:
+      consumes:
+      - application/json
+      description: Get current and longest streak information for a user
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get streak information
+      tags:
+      - streaks
+  /progress/weekly-report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive weekly progress report with analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get weekly report
+      tags:
+      - reports
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,719 @@
+basePath: /api/v1
+definitions:
+  phonetic.CreatePracticePlanRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      duration_weeks:
+        maximum: 52
+        minimum: 1
+        type: integer
+      focus_areas:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      language_id:
+        type: integer
+      minutes_per_session:
+        maximum: 120
+        minimum: 5
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      sessions_per_week:
+        maximum: 7
+        minimum: 1
+        type: integer
+    required:
+    - duration_weeks
+    - focus_areas
+    - language_id
+    - minutes_per_session
+    - name
+    - sessions_per_week
+    type: object
+  phonetic.ExerciseCompleteRequest:
+    properties:
+      accuracy:
+        maximum: 100
+        minimum: 0
+        type: number
+      responses:
+        description: JSON string with detailed responses
+        type: string
+      score:
+        maximum: 100
+        minimum: 0
+        type: integer
+      session_id:
+        type: string
+      time_spent:
+        minimum: 1
+        type: integer
+    required:
+    - session_id
+    type: object
+  phonetic.PracticePhonemeRequest:
+    properties:
+      accuracy:
+        maximum: 100
+        minimum: 0
+        type: number
+      attempts:
+        minimum: 1
+        type: integer
+      phoneme_id:
+        type: integer
+      score:
+        maximum: 100
+        minimum: 0
+        type: integer
+      time_spent:
+        description: seconds
+        minimum: 1
+        type: integer
+      type:
+        enum:
+        - discrimination
+        - production
+        type: string
+    required:
+    - phoneme_id
+    - type
+    type: object
+host: localhost:8005
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Phonetic training and pronunciation practice service for Polyfy language
+    learning platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Polyfy Phonetic Service API
+  version: "1.0"
+paths:
+  /phonetic/exercises:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of phonetic exercises with optional filtering
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - description: Phoneme ID for filtering
+        in: query
+        name: phoneme_id
+        type: integer
+      - description: Exercise type (pronunciation, listening, minimal_pairs)
+        in: query
+        name: type
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get phonetic exercises
+      tags:
+      - exercises
+  /phonetic/exercises/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific phonetic exercise by
+        ID
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get specific exercise
+      tags:
+      - exercises
+  /phonetic/exercises/{id}/start:
+    post:
+      consumes:
+      - application/json
+      description: Start a new phonetic exercise session for a user
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Start exercise session
+      tags:
+      - sessions
+  /phonetic/languages/{language_id}/minimal-pairs:
+    get:
+      consumes:
+      - application/json
+      description: Get minimal pairs for phonetic contrast practice, optionally filtered
+        by specific phonemes
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: path
+        name: language_id
+        required: true
+        type: integer
+      - description: First phoneme ID for filtering
+        in: query
+        name: phoneme1_id
+        type: integer
+      - description: Second phoneme ID for filtering
+        in: query
+        name: phoneme2_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get minimal pairs
+      tags:
+      - phonemes
+  /phonetic/languages/{language_id}/phonemes:
+    get:
+      consumes:
+      - application/json
+      description: Get all phonemes for a specific language with IPA symbols and articulation
+        details
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: path
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get phonemes by language
+      tags:
+      - phonemes
+  /phonetic/phonemes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific phoneme by ID
+      parameters:
+      - description: Phoneme ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get specific phoneme
+      tags:
+      - phonemes
+  /phonetic/practice:
+    post:
+      consumes:
+      - application/json
+      description: Record a phoneme practice session with accuracy and feedback data
+      parameters:
+      - description: Practice session data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.PracticePhonemeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Record phoneme practice
+      tags:
+      - progress
+  /phonetic/practice-plan:
+    get:
+      consumes:
+      - application/json
+      description: Get current personalized practice plan for a user in a specific
+        language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get practice plan
+      tags:
+      - practice-plans
+    post:
+      consumes:
+      - application/json
+      description: Create a new personalized practice plan with custom goals and schedule
+      parameters:
+      - description: Practice plan data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.CreatePracticePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create practice plan
+      tags:
+      - practice-plans
+  /phonetic/progress:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed phonetic progress for a user in a specific language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user phonetic progress
+      tags:
+      - progress
+  /phonetic/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized phonetic exercise recommendations based on user's
+        weak areas
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 5
+        description: Number of recommendations to return (max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get phonetic recommendations
+      tags:
+      - recommendations
+  /phonetic/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of user's exercise sessions with history and
+        results
+      parameters:
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user exercise sessions
+      tags:
+      - sessions
+  /phonetic/sessions/{session_id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Complete a phonetic exercise session with results and feedback
+      parameters:
+      - description: Session ID
+        in: path
+        name: session_id
+        required: true
+        type: string
+      - description: Exercise completion data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.ExerciseCompleteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Complete exercise session
+      tags:
+      - sessions
+  /phonetic/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive phonetic statistics and analytics for a user
+        in a specific language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get phonetic statistics
+      tags:
+      - progress
+  /phonetic/weak-phonemes:
+    get:
+      consumes:
+      - application/json
+      description: Get phonemes that the user needs to practice based on performance
+        analytics
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 5
+        description: Number of weak phonemes to return (max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get weak phonemes
+      tags:
+      - recommendations
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

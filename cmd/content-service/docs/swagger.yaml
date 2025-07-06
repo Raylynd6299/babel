@@ -1,0 +1,600 @@
+basePath: /api/v1
+definitions:
+  content.CreateContentRequest:
+    properties:
+      average_episode_duration:
+        minimum: 1
+        type: integer
+      content_type:
+        enum:
+        - series
+        - movie
+        - podcast
+        - book
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      description:
+        type: string
+      genre:
+        maxLength: 100
+        type: string
+      imdb_rating:
+        maximum: 10
+        minimum: 0
+        type: number
+      language_id:
+        type: integer
+      poster_url:
+        type: string
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+      total_episodes:
+        minimum: 1
+        type: integer
+      year_released:
+        maximum: 2030
+        minimum: 1900
+        type: integer
+    required:
+    - content_type
+    - language_id
+    - title
+    type: object
+  content.CreateEpisodeRequest:
+    properties:
+      description:
+        type: string
+      duration_minutes:
+        minimum: 1
+        type: integer
+      episode_number:
+        minimum: 1
+        type: integer
+      season_number:
+        minimum: 1
+        type: integer
+      title:
+        maxLength: 255
+        type: string
+    required:
+    - duration_minutes
+    - episode_number
+    type: object
+  content.RateContentRequest:
+    properties:
+      difficulty_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      entertainment_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      review_text:
+        maxLength: 1000
+        type: string
+      usefulness_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - difficulty_rating
+    - entertainment_rating
+    - usefulness_rating
+    type: object
+host: localhost:8002
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Content management service for Polyfy language learning platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Polyfy Content Service API
+  version: "1.0"
+paths:
+  /content:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of content with filtering options
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        type: integer
+      - description: Content type (movie, series, etc.)
+        in: query
+        name: content_type
+        type: string
+      - description: Genre
+        in: query
+        name: genre
+        type: string
+      - description: Country
+        in: query
+        name: country
+        type: string
+      - description: Minimum rating
+        in: query
+        name: min_rating
+        type: number
+      - description: Maximum rating
+        in: query
+        name: max_rating
+        type: number
+      - description: Difficulty levels (comma-separated)
+        in: query
+        name: difficulty
+        type: string
+      - description: Year from
+        in: query
+        name: year_from
+        type: integer
+      - description: Year to
+        in: query
+        name: year_to
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - default: 20
+        description: Limit (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Sort by field
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction (asc/desc)
+        in: query
+        name: sort_direction
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content list
+      tags:
+      - content
+    post:
+      consumes:
+      - application/json
+      description: Create a new piece of content (movie, series, etc.)
+      parameters:
+      - description: Content data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create new content
+      tags:
+      - content
+  /content/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete content
+      tags:
+      - content
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content by ID
+      tags:
+      - content
+    put:
+      consumes:
+      - application/json
+      description: Update an existing content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Content update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update content
+      tags:
+      - content
+  /content/{id}/episodes:
+    get:
+      consumes:
+      - application/json
+      description: Get all episodes for a specific content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content episodes
+      tags:
+      - episodes
+    post:
+      consumes:
+      - application/json
+      description: Create a new episode for a content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateEpisodeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create episode
+      tags:
+      - episodes
+  /content/{id}/episodes/{episode_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing episode
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode ID
+        in: path
+        name: episode_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete episode
+      tags:
+      - episodes
+    put:
+      consumes:
+      - application/json
+      description: Update an existing episode
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode ID
+        in: path
+        name: episode_id
+        required: true
+        type: string
+      - description: Episode update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateEpisodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update episode
+      tags:
+      - episodes
+  /content/{id}/rate:
+    post:
+      consumes:
+      - application/json
+      description: Rate a content item with difficulty, usefulness and entertainment
+        ratings
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rating data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.RateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rate content
+      tags:
+      - ratings
+  /content/languages:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all available languages
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get available languages
+      tags:
+      - languages
+  /content/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized content recommendations for the user
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - default: 10
+        description: Number of recommendations (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get content recommendations
+      tags:
+      - recommendations
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

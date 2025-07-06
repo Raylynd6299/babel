@@ -1,0 +1,4564 @@
+basePath: /api/v1
+definitions:
+  auth.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/auth.User'
+    type: object
+  auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - username
+    type: object
+  auth.UpdateProfileRequest:
+    properties:
+      first_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      last_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    type: object
+  auth.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      first_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_login:
+        type: string
+      last_name:
+        type: string
+      premium_until:
+        type: string
+      timezone:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  content.CreateContentRequest:
+    properties:
+      average_episode_duration:
+        minimum: 1
+        type: integer
+      content_type:
+        enum:
+        - series
+        - movie
+        - podcast
+        - book
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      description:
+        type: string
+      genre:
+        maxLength: 100
+        type: string
+      imdb_rating:
+        maximum: 10
+        minimum: 0
+        type: number
+      language_id:
+        type: integer
+      poster_url:
+        type: string
+      title:
+        maxLength: 255
+        minLength: 1
+        type: string
+      total_episodes:
+        minimum: 1
+        type: integer
+      year_released:
+        maximum: 2030
+        minimum: 1900
+        type: integer
+    required:
+    - content_type
+    - language_id
+    - title
+    type: object
+  content.CreateEpisodeRequest:
+    properties:
+      description:
+        type: string
+      duration_minutes:
+        minimum: 1
+        type: integer
+      episode_number:
+        minimum: 1
+        type: integer
+      season_number:
+        minimum: 1
+        type: integer
+      title:
+        maxLength: 255
+        type: string
+    required:
+    - duration_minutes
+    - episode_number
+    type: object
+  content.RateContentRequest:
+    properties:
+      difficulty_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      entertainment_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      review_text:
+        maxLength: 1000
+        type: string
+      usefulness_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - difficulty_rating
+    - entertainment_rating
+    - usefulness_rating
+    type: object
+  phonetic.CreatePracticePlanRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      duration_weeks:
+        maximum: 52
+        minimum: 1
+        type: integer
+      focus_areas:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      language_id:
+        type: integer
+      minutes_per_session:
+        maximum: 120
+        minimum: 5
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      sessions_per_week:
+        maximum: 7
+        minimum: 1
+        type: integer
+    required:
+    - duration_weeks
+    - focus_areas
+    - language_id
+    - minutes_per_session
+    - name
+    - sessions_per_week
+    type: object
+  phonetic.ExerciseCompleteRequest:
+    properties:
+      accuracy:
+        maximum: 100
+        minimum: 0
+        type: number
+      responses:
+        description: JSON string with detailed responses
+        type: string
+      score:
+        maximum: 100
+        minimum: 0
+        type: integer
+      session_id:
+        type: string
+      time_spent:
+        minimum: 1
+        type: integer
+    required:
+    - session_id
+    type: object
+  phonetic.PracticePhonemeRequest:
+    properties:
+      accuracy:
+        maximum: 100
+        minimum: 0
+        type: number
+      attempts:
+        minimum: 1
+        type: integer
+      phoneme_id:
+        type: integer
+      score:
+        maximum: 100
+        minimum: 0
+        type: integer
+      time_spent:
+        description: seconds
+        minimum: 1
+        type: integer
+      type:
+        enum:
+        - discrimination
+        - production
+        type: string
+    required:
+    - phoneme_id
+    - type
+    type: object
+  progress.LogInputRequest:
+    properties:
+      completed:
+        type: boolean
+      comprehension_percentage:
+        maximum: 100
+        minimum: 0
+        type: integer
+      content_id:
+        type: string
+      difficulty_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      duration_minutes:
+        minimum: 1
+        type: integer
+      enjoyment_rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      episode_id:
+        type: string
+      language_id:
+        description: Add this field
+        type: integer
+      notes:
+        type: string
+    required:
+    - content_id
+    - duration_minutes
+    type: object
+  progress.SetGoalsRequest:
+    properties:
+      daily_goal_minutes:
+        maximum: 1440
+        minimum: 1
+        type: integer
+      language_id:
+        type: integer
+      monthly_goal_hours:
+        maximum: 744
+        minimum: 1
+        type: integer
+      weekly_goal_hours:
+        maximum: 168
+        minimum: 1
+        type: integer
+    required:
+    - daily_goal_minutes
+    - language_id
+    - monthly_goal_hours
+    - weekly_goal_hours
+    type: object
+  social.UpdateProfileRequest:
+    properties:
+      allow_messages:
+        type: boolean
+      bio:
+        maxLength: 500
+        type: string
+      country_code:
+        type: string
+      display_name:
+        maxLength: 100
+        type: string
+      is_public:
+        type: boolean
+      learning_languages:
+        items:
+          type: integer
+        type: array
+      native_languages:
+        items:
+          type: integer
+        type: array
+      show_progress:
+        type: boolean
+      show_streak:
+        type: boolean
+      timezone:
+        type: string
+    type: object
+  vocabulary.AddVocabularyRequest:
+    properties:
+      context_sentence:
+        type: string
+      definition:
+        type: string
+      difficulty_level:
+        type: string
+      example_sentence:
+        type: string
+      personal_note:
+        type: string
+      phonetic_transcription:
+        type: string
+      source_content_id:
+        type: string
+      translation:
+        maxLength: 255
+        minLength: 1
+        type: string
+      word:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - translation
+    - word
+    type: object
+  vocabulary.BatchReviewRequest:
+    properties:
+      reviews:
+        items:
+          $ref: '#/definitions/vocabulary.ReviewRequest'
+        maxItems: 50
+        minItems: 1
+        type: array
+    required:
+    - reviews
+    type: object
+  vocabulary.BulkAddVocabularyRequest:
+    properties:
+      list_id:
+        type: string
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - vocabulary_ids
+    type: object
+  vocabulary.BulkDeleteVocabularyRequest:
+    properties:
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - vocabulary_ids
+    type: object
+  vocabulary.BulkResetProgressRequest:
+    properties:
+      reset_type:
+        enum:
+        - all
+        - progress
+        - reviews
+        type: string
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - reset_type
+    - vocabulary_ids
+    type: object
+  vocabulary.CreateVocabularyListRequest:
+    properties:
+      description:
+        maxLength: 1000
+        type: string
+      is_public:
+        type: boolean
+      language_id:
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - language_id
+    - name
+    type: object
+  vocabulary.ImportOptions:
+    properties:
+      skip_duplicates:
+        type: boolean
+      update_existing:
+        type: boolean
+    type: object
+  vocabulary.ImportVocabularyRequest:
+    properties:
+      data:
+        type: string
+      format:
+        enum:
+        - csv
+        - json
+        - anki
+        type: string
+      language_id:
+        type: integer
+      options:
+        $ref: '#/definitions/vocabulary.ImportOptions'
+    required:
+    - data
+    - format
+    - language_id
+    type: object
+  vocabulary.ReviewRequest:
+    properties:
+      correct:
+        type: boolean
+      response_time:
+        description: milliseconds
+        type: integer
+      vocabulary_id:
+        type: string
+    required:
+    - vocabulary_id
+    type: object
+  vocabulary.UpdateSRSConfigRequest:
+    properties:
+      easy_bonus:
+        maximum: 3
+        minimum: 1
+        type: number
+      failure_penalty:
+        maximum: 1
+        minimum: 0.1
+        type: number
+      graduation_steps:
+        items:
+          type: integer
+        maxItems: 10
+        minItems: 1
+        type: array
+      hard_penalty:
+        maximum: 1
+        minimum: 0.1
+        type: number
+      max_ease_factor:
+        maximum: 5
+        minimum: 1
+        type: number
+      max_reviews_per_day:
+        maximum: 1000
+        minimum: 10
+        type: integer
+      min_ease_factor:
+        maximum: 3
+        minimum: 1
+        type: number
+      new_words_per_day:
+        maximum: 100
+        minimum: 1
+        type: integer
+    type: object
+  vocabulary.UpdateVocabularyListRequest:
+    properties:
+      description:
+        maxLength: 1000
+        type: string
+      is_public:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  vocabulary.UpdateVocabularyRequest:
+    properties:
+      context_sentence:
+        type: string
+      definition:
+        type: string
+      example_sentence:
+        type: string
+      personal_note:
+        type: string
+      phonetic_transcription:
+        maxLength: 255
+        type: string
+      translation:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  vocabulary.VocabularyFilter:
+    properties:
+      language_id:
+        type: integer
+      limit:
+        maximum: 100
+        minimum: 1
+        type: integer
+      mastery_levels:
+        items:
+          type: integer
+        type: array
+      offset:
+        minimum: 0
+        type: integer
+      search_query:
+        type: string
+      sort_by:
+        description: added_at, mastery_level, word, next_review
+        type: string
+      sort_direction:
+        description: asc, desc
+        type: string
+    required:
+    - language_id
+    type: object
+host: localhost:8006
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Social networking and community features for Polyfy language learning
+    platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Polyfy Social Service API
+  version: "1.0"
+paths:
+  /content:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of content with filtering options
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        type: integer
+      - description: Content type (movie, series, etc.)
+        in: query
+        name: content_type
+        type: string
+      - description: Genre
+        in: query
+        name: genre
+        type: string
+      - description: Country
+        in: query
+        name: country
+        type: string
+      - description: Minimum rating
+        in: query
+        name: min_rating
+        type: number
+      - description: Maximum rating
+        in: query
+        name: max_rating
+        type: number
+      - description: Difficulty levels (comma-separated)
+        in: query
+        name: difficulty
+        type: string
+      - description: Year from
+        in: query
+        name: year_from
+        type: integer
+      - description: Year to
+        in: query
+        name: year_to
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - default: 20
+        description: Limit (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Sort by field
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort direction (asc/desc)
+        in: query
+        name: sort_direction
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content list
+      tags:
+      - content
+    post:
+      consumes:
+      - application/json
+      description: Create a new piece of content (movie, series, etc.)
+      parameters:
+      - description: Content data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create new content
+      tags:
+      - content
+  /content/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete content
+      tags:
+      - content
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content by ID
+      tags:
+      - content
+    put:
+      consumes:
+      - application/json
+      description: Update an existing content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Content update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update content
+      tags:
+      - content
+  /content/{id}/episodes:
+    get:
+      consumes:
+      - application/json
+      description: Get all episodes for a specific content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get content episodes
+      tags:
+      - episodes
+    post:
+      consumes:
+      - application/json
+      description: Create a new episode for a content item
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateEpisodeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create episode
+      tags:
+      - episodes
+  /content/{id}/episodes/{episode_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing episode
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode ID
+        in: path
+        name: episode_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete episode
+      tags:
+      - episodes
+    put:
+      consumes:
+      - application/json
+      description: Update an existing episode
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Episode ID
+        in: path
+        name: episode_id
+        required: true
+        type: string
+      - description: Episode update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.CreateEpisodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update episode
+      tags:
+      - episodes
+  /content/{id}/rate:
+    post:
+      consumes:
+      - application/json
+      description: Rate a content item with difficulty, usefulness and entertainment
+        ratings
+      parameters:
+      - description: Content ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rating data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.RateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rate content
+      tags:
+      - ratings
+  /content/languages:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all available languages
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get available languages
+      tags:
+      - languages
+  /content/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized content recommendations for the user
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - default: 10
+        description: Number of recommendations (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get content recommendations
+      tags:
+      - recommendations
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: User login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /me:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently delete current user's account
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user account
+      tags:
+      - user
+    get:
+      consumes:
+      - application/json
+      description: Get current user's profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: Update current user's profile information
+      parameters:
+      - description: Profile update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - user
+  /phonetic/exercises:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of phonetic exercises with optional filtering
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - description: Phoneme ID for filtering
+        in: query
+        name: phoneme_id
+        type: integer
+      - description: Exercise type (pronunciation, listening, minimal_pairs)
+        in: query
+        name: type
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get phonetic exercises
+      tags:
+      - exercises
+  /phonetic/exercises/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific phonetic exercise by
+        ID
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get specific exercise
+      tags:
+      - exercises
+  /phonetic/exercises/{id}/start:
+    post:
+      consumes:
+      - application/json
+      description: Start a new phonetic exercise session for a user
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Start exercise session
+      tags:
+      - sessions
+  /phonetic/languages/{language_id}/minimal-pairs:
+    get:
+      consumes:
+      - application/json
+      description: Get minimal pairs for phonetic contrast practice, optionally filtered
+        by specific phonemes
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: path
+        name: language_id
+        required: true
+        type: integer
+      - description: First phoneme ID for filtering
+        in: query
+        name: phoneme1_id
+        type: integer
+      - description: Second phoneme ID for filtering
+        in: query
+        name: phoneme2_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get minimal pairs
+      tags:
+      - phonemes
+  /phonetic/languages/{language_id}/phonemes:
+    get:
+      consumes:
+      - application/json
+      description: Get all phonemes for a specific language with IPA symbols and articulation
+        details
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: path
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get phonemes by language
+      tags:
+      - phonemes
+  /phonetic/phonemes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific phoneme by ID
+      parameters:
+      - description: Phoneme ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get specific phoneme
+      tags:
+      - phonemes
+  /phonetic/practice:
+    post:
+      consumes:
+      - application/json
+      description: Record a phoneme practice session with accuracy and feedback data
+      parameters:
+      - description: Practice session data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.PracticePhonemeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Record phoneme practice
+      tags:
+      - progress
+  /phonetic/practice-plan:
+    get:
+      consumes:
+      - application/json
+      description: Get current personalized practice plan for a user in a specific
+        language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get practice plan
+      tags:
+      - practice-plans
+    post:
+      consumes:
+      - application/json
+      description: Create a new personalized practice plan with custom goals and schedule
+      parameters:
+      - description: Practice plan data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.CreatePracticePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create practice plan
+      tags:
+      - practice-plans
+  /phonetic/progress:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed phonetic progress for a user in a specific language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user phonetic progress
+      tags:
+      - progress
+  /phonetic/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized phonetic exercise recommendations based on user's
+        weak areas
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 5
+        description: Number of recommendations to return (max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get phonetic recommendations
+      tags:
+      - recommendations
+  /phonetic/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of user's exercise sessions with history and
+        results
+      parameters:
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user exercise sessions
+      tags:
+      - sessions
+  /phonetic/sessions/{session_id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Complete a phonetic exercise session with results and feedback
+      parameters:
+      - description: Session ID
+        in: path
+        name: session_id
+        required: true
+        type: string
+      - description: Exercise completion data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/phonetic.ExerciseCompleteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Complete exercise session
+      tags:
+      - sessions
+  /phonetic/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive phonetic statistics and analytics for a user
+        in a specific language
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get phonetic statistics
+      tags:
+      - progress
+  /phonetic/weak-phonemes:
+    get:
+      consumes:
+      - application/json
+      description: Get phonemes that the user needs to practice based on performance
+        analytics
+      parameters:
+      - description: Language ID (1=English, 2=Spanish)
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 5
+        description: Number of weak phonemes to return (max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get weak phonemes
+      tags:
+      - recommendations
+  /progress/analytics:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed analytics and trends for user progress over time
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 30
+        description: Number of days to analyze (max 365)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get progress analytics
+      tags:
+      - analytics
+  /progress/calendar:
+    get:
+      consumes:
+      - application/json
+      description: Get study activity data for calendar visualization
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - description: Year (2020-2030)
+        in: query
+        name: year
+        type: integer
+      - description: Month (1-12)
+        in: query
+        name: month
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get calendar data
+      tags:
+      - calendar
+  /progress/goals:
+    get:
+      consumes:
+      - application/json
+      description: Get current learning goals and progress for a language
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get learning goals
+      tags:
+      - goals
+    post:
+      consumes:
+      - application/json
+      description: Set daily, weekly, and monthly learning goals for a language
+      parameters:
+      - description: Goals data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/progress.SetGoalsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set learning goals
+      tags:
+      - goals
+  /progress/history:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated history of user's study sessions
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 20
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get progress history
+      tags:
+      - history
+  /progress/input:
+    post:
+      consumes:
+      - application/json
+      description: Log a study session with content consumption data
+      parameters:
+      - description: Study session data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/progress.LogInputRequest'
+      - description: Language ID (can also be in request body)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log study input
+      tags:
+      - input
+  /progress/monthly-report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive monthly progress report with detailed analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get monthly report
+      tags:
+      - reports
+  /progress/recent:
+    get:
+      consumes:
+      - application/json
+      description: Get user's recent study activity across all languages
+      parameters:
+      - default: 10
+        description: Number of activities to return (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get recent activity
+      tags:
+      - activity
+  /progress/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get aggregated study sessions data for a specific time period
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 7
+        description: Number of days to look back (max 90)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get study sessions
+      tags:
+      - sessions
+  /progress/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for a user in a specific language
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user statistics
+      tags:
+      - statistics
+  /progress/streak:
+    get:
+      consumes:
+      - application/json
+      description: Get current and longest streak information for a user
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get streak information
+      tags:
+      - streaks
+  /progress/weekly-report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive weekly progress report with analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get weekly report
+      tags:
+      - reports
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get new access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /social/activities:
+    post:
+      consumes:
+      - application/json
+      description: Create a new activity post to share with followers and groups
+      parameters:
+      - description: Activity creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create activity
+      tags:
+      - activities
+  /social/activities/{id}/like:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a like from a specific activity post
+      parameters:
+      - description: Activity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Unlike activity
+      tags:
+      - activities
+    post:
+      consumes:
+      - application/json
+      description: Add a like to a specific activity post
+      parameters:
+      - description: Activity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Like activity
+      tags:
+      - activities
+  /social/activities/{id}/likes:
+    get:
+      consumes:
+      - application/json
+      description: Get list of users who liked a specific activity post
+      parameters:
+      - description: Activity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get activity likes
+      tags:
+      - activities
+  /social/feed:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized activity feed with posts from followed users and
+        groups
+      parameters:
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get activity feed
+      tags:
+      - activities
+  /social/follow:
+    post:
+      consumes:
+      - application/json
+      description: Start following another user to see their activities in feed
+      parameters:
+      - description: Follow user data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Follow user
+      tags:
+      - follows
+  /social/follow/{user_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Stop following a user and remove their activities from feed
+      parameters:
+      - description: User ID to unfollow
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Unfollow user
+      tags:
+      - follows
+  /social/followers:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of users who follow the current user
+      parameters:
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my followers
+      tags:
+      - follows
+  /social/following:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of users that the current user follows
+      parameters:
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my following
+      tags:
+      - follows
+  /social/groups:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of public study groups with filtering options
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - description: Target level (beginner, intermediate, advanced)
+        in: query
+        name: target_level
+        type: string
+      - description: Filter by public groups
+        in: query
+        name: is_public
+        type: boolean
+      - description: Filter groups with available space
+        in: query
+        name: has_space
+        type: boolean
+      - description: Search term for group name or description
+        in: query
+        name: search
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get study groups
+      tags:
+      - groups
+    post:
+      consumes:
+      - application/json
+      description: Create a new study group for language learning collaboration
+      parameters:
+      - description: Group creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create study group
+      tags:
+      - groups
+  /social/groups/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific public study group
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get public group details
+      tags:
+      - groups
+  /social/groups/{id}/join:
+    post:
+      consumes:
+      - application/json
+      description: Join an existing study group as a member
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Join group data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Join study group
+      tags:
+      - groups
+  /social/groups/{id}/leave:
+    delete:
+      consumes:
+      - application/json
+      description: Leave a study group that the user is currently a member of
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Leave study group
+      tags:
+      - groups
+  /social/groups/{id}/members:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of members in a specific study group
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get group members
+      tags:
+      - groups
+  /social/language-exchange:
+    get:
+      consumes:
+      - application/json
+      description: Get all language exchange partnerships for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my language exchanges
+      tags:
+      - exchanges
+    post:
+      consumes:
+      - application/json
+      description: Create a new language exchange partnership between two users
+      parameters:
+      - description: Language exchange data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create language exchange
+      tags:
+      - exchanges
+  /social/language-exchange/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a language exchange partnership
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status update data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update exchange status
+      tags:
+      - exchanges
+  /social/leaderboards/{type}:
+    get:
+      consumes:
+      - application/json
+      description: Get leaderboard rankings for different metrics and time periods
+      parameters:
+      - description: Leaderboard type (streak, points, vocabulary, phonetic)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - default: week
+        description: Time period (day, week, month, year)
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get leaderboard
+      tags:
+      - leaderboards
+  /social/mentorship:
+    get:
+      consumes:
+      - application/json
+      description: Get all mentorship relationships for the current user (as mentor
+        or mentee)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my mentorships
+      tags:
+      - mentorship
+    post:
+      consumes:
+      - application/json
+      description: Create a new mentorship relationship between mentor and mentee
+      parameters:
+      - description: Mentorship data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create mentorship
+      tags:
+      - mentorship
+  /social/mentorship/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a mentorship relationship
+      parameters:
+      - description: Mentorship ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status update data
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update mentorship status
+      tags:
+      - mentorship
+  /social/my-groups:
+    get:
+      consumes:
+      - application/json
+      description: Get all study groups that the current user is a member of
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my groups
+      tags:
+      - groups
+  /social/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get current user's complete social profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my profile
+      tags:
+      - profiles
+    put:
+      consumes:
+      - application/json
+      description: Update current user's social profile information and settings
+      parameters:
+      - description: Profile update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/social.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update my profile
+      tags:
+      - profiles
+  /social/profiles/{user_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get public profile information for a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get public user profile
+      tags:
+      - profiles
+  /social/profiles/{user_id}/followers:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of users who follow a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user followers
+      tags:
+      - follows
+  /social/profiles/{user_id}/following:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of users that a specific user follows
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user following
+      tags:
+      - follows
+  /social/search/groups:
+    get:
+      consumes:
+      - application/json
+      description: Search for study groups with filtering options (same as GetGroups
+        but with search focus)
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - description: Target level (beginner, intermediate, advanced)
+        in: query
+        name: target_level
+        type: string
+      - description: Filter by public groups
+        in: query
+        name: is_public
+        type: boolean
+      - description: Filter groups with available space
+        in: query
+        name: has_space
+        type: boolean
+      - description: Search term for group name or description
+        in: query
+        name: search
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search groups
+      tags:
+      - search
+  /social/search/users:
+    get:
+      consumes:
+      - application/json
+      description: Search for users with filtering options by language, country, and
+        search term
+      parameters:
+      - description: Language ID for filtering
+        in: query
+        name: language_id
+        type: integer
+      - description: Country code for filtering (ISO 3166-1 alpha-2)
+        in: query
+        name: country_code
+        type: string
+      - description: Search term for username or display name
+        in: query
+        name: search
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search users
+      tags:
+      - search
+  /social/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get current user's comprehensive social statistics and metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my social statistics
+      tags:
+      - profiles
+  /social/users/{user_id}/activities:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of activities from a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user activities
+      tags:
+      - activities
+  /vocabulary:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of user's vocabulary words
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user vocabulary
+      tags:
+      - vocabulary
+    post:
+      consumes:
+      - application/json
+      description: Add a new vocabulary word to user's collection
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - description: Vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.AddVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add new vocabulary
+      tags:
+      - vocabulary
+  /vocabulary/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing vocabulary word from user's collection
+      parameters:
+      - description: Vocabulary ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete vocabulary
+      tags:
+      - vocabulary
+    put:
+      consumes:
+      - application/json
+      description: Update an existing vocabulary word
+      parameters:
+      - description: Vocabulary ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update vocabulary
+      tags:
+      - vocabulary
+  /vocabulary/bulk-add:
+    post:
+      consumes:
+      - application/json
+      description: Add multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkAddVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk add vocabulary
+      tags:
+      - bulk
+  /vocabulary/bulk-delete:
+    post:
+      consumes:
+      - application/json
+      description: Delete multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk delete data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkDeleteVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk delete vocabulary
+      tags:
+      - bulk
+  /vocabulary/bulk-reset:
+    post:
+      consumes:
+      - application/json
+      description: Reset SRS progress for multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk reset data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkResetProgressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk reset progress
+      tags:
+      - bulk
+  /vocabulary/export:
+    get:
+      consumes:
+      - application/json
+      description: Export user's vocabulary words in various formats (JSON, CSV)
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: json
+        description: Export format (json, csv)
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Export vocabulary
+      tags:
+      - import-export
+  /vocabulary/filter:
+    post:
+      consumes:
+      - application/json
+      description: Filter vocabulary words using advanced criteria and filters
+      parameters:
+      - description: Filter criteria
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.VocabularyFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Filter vocabulary
+      tags:
+      - search
+  /vocabulary/import:
+    post:
+      consumes:
+      - application/json
+      description: Import vocabulary words from external sources or files
+      parameters:
+      - description: Import data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.ImportVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Import vocabulary
+      tags:
+      - import-export
+  /vocabulary/lists:
+    get:
+      consumes:
+      - application/json
+      description: Get all vocabulary lists for the user, optionally filtered by language
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary lists
+      tags:
+      - lists
+    post:
+      consumes:
+      - application/json
+      description: Create a new vocabulary list for organizing words
+      parameters:
+      - description: List data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.CreateVocabularyListRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create vocabulary list
+      tags:
+      - lists
+  /vocabulary/lists/{list_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing vocabulary list and optionally its associated
+        words
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete vocabulary list
+      tags:
+      - lists
+    get:
+      consumes:
+      - application/json
+      description: Get a specific vocabulary list with its words
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary list
+      tags:
+      - lists
+    put:
+      consumes:
+      - application/json
+      description: Update an existing vocabulary list's metadata and settings
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      - description: Updated list data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateVocabularyListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update vocabulary list
+      tags:
+      - lists
+  /vocabulary/progress:
+    get:
+      consumes:
+      - application/json
+      description: Get vocabulary learning progress over time with analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 30
+        description: Number of days to analyze (max 365)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary progress
+      tags:
+      - statistics
+  /vocabulary/reviews:
+    get:
+      consumes:
+      - application/json
+      description: Get vocabulary words that are due for SRS review
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 10
+        description: Number of items to return (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary for review
+      tags:
+      - reviews
+    post:
+      consumes:
+      - application/json
+      description: Submit a review for a vocabulary word using SRS algorithm
+      parameters:
+      - description: Review data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.ReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Review vocabulary
+      tags:
+      - reviews
+  /vocabulary/reviews/batch:
+    post:
+      consumes:
+      - application/json
+      description: Submit multiple vocabulary reviews in a single request
+      parameters:
+      - description: Batch review data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BatchReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Batch review vocabulary
+      tags:
+      - reviews
+  /vocabulary/search:
+    get:
+      consumes:
+      - application/json
+      description: Search vocabulary words by term in word, definition, or notes
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - description: Search query term
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search vocabulary
+      tags:
+      - search
+  /vocabulary/srs-config:
+    get:
+      consumes:
+      - application/json
+      description: Get current Spaced Repetition System configuration for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get SRS configuration
+      tags:
+      - srs
+    put:
+      consumes:
+      - application/json
+      description: Update Spaced Repetition System configuration with custom parameters
+      parameters:
+      - description: SRS configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateSRSConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update SRS configuration
+      tags:
+      - srs
+  /vocabulary/srs-config/preset/{preset}:
+    put:
+      consumes:
+      - application/json
+      description: Apply a predefined SRS configuration preset (beginner, intermediate,
+        advanced)
+      parameters:
+      - description: Preset name (beginner, intermediate, advanced)
+        in: path
+        name: preset
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Apply SRS preset
+      tags:
+      - srs
+  /vocabulary/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for user's vocabulary in a specific
+        language
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary statistics
+      tags:
+      - statistics
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -7,20 +7,33 @@ import (
 )
 
 type User struct {
-	ID            string         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Email         string         `json:"email" gorm:"uniqueIndex;not null"`
-	Username      string         `json:"username" gorm:"uniqueIndex;not null"`
-	PasswordHash  string         `json:"-" gorm:"not null"`
-	FirstName     string         `json:"first_name"`
-	LastName      string         `json:"last_name"`
-	Timezone      string         `json:"timezone" gorm:"default:'UTC'"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	LastLogin     *time.Time     `json:"last_login"`
-	IsActive      bool           `json:"is_active" gorm:"default:true"`
-	EmailVerified bool           `json:"email_verified" gorm:"default:false"`
-	PremiumUntil  *time.Time     `json:"premium_until"`
-	DeletedAt     gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+	ID            string     `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Email         string     `json:"email" gorm:"uniqueIndex;not null"`
+	Username      string     `json:"username" gorm:"uniqueIndex;not null"`
+	PasswordHash  string     `json:"-" gorm:"not null" swaggerignore:"true"`
+	FirstName     string     `json:"first_name"`
+	LastName      string     `json:"last_name"`
+	Timezone      string     `json:"timezone" gorm:"default:'UTC'"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	LastLogin     *time.Time `json:"last_login"`
+	IsActive      bool       `json:"is_active" gorm:"default:true"`
+	EmailVerified bool       `json:"email_verified" gorm:"default:false"`
+	PremiumUntil  *time.Time `json:"premium_until"`
+	DeletedAt     gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index" swaggerignore:"true"`
+}
+
+type RefreshToken struct {
+	ID        string         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID    string         `json:"user_id" gorm:"not null"`
+	Token     string         `json:"token" gorm:"uniqueIndex;not null"`
+	ExpiresAt time.Time      `json:"expires_at" gorm:"not null"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+
+	// Relations
+	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 
 type RegisterRequest struct {

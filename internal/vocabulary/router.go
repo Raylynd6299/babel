@@ -7,8 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
+
+	_ "github.com/Raylynd6299/babel/cmd/vocabulary-service/docs"
 )
 
 type Router struct {
@@ -40,6 +44,9 @@ func NewRouter(service *Service) *gin.Engine {
 		validator:  validator.New(),
 		jwtService: jwtService,
 	}
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("vocabulary")))
 
 	v1 := router.Group("/api/v1")
 
@@ -91,7 +98,19 @@ func NewRouter(service *Service) *gin.Engine {
 	return router
 }
 
-// CRUD Operations
+// AddVocabulary godoc
+// @Summary      Add new vocabulary
+// @Description  Add a new vocabulary word to user's collection
+// @Tags         vocabulary
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Param        request body AddVocabularyRequest true "Vocabulary data"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary [post]
 func (r *Router) AddVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -135,6 +154,21 @@ func (r *Router) AddVocabulary(c *gin.Context) {
 	})
 }
 
+// GetUserVocabulary godoc
+// @Summary      Get user vocabulary
+// @Description  Get paginated list of user's vocabulary words
+// @Tags         vocabulary
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Param        limit query int false "Number of items to return (max 100)" default(20)
+// @Param        offset query int false "Number of items to skip" default(0)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary [get]
 func (r *Router) GetUserVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -182,6 +216,19 @@ func (r *Router) GetUserVocabulary(c *gin.Context) {
 	})
 }
 
+// UpdateVocabulary godoc
+// @Summary      Update vocabulary
+// @Description  Update an existing vocabulary word
+// @Tags         vocabulary
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Vocabulary ID"
+// @Param        request body UpdateVocabularyRequest true "Updated vocabulary data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/{id} [put]
 func (r *Router) UpdateVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -218,6 +265,18 @@ func (r *Router) UpdateVocabulary(c *gin.Context) {
 	})
 }
 
+// DeleteVocabulary godoc
+// @Summary      Delete vocabulary
+// @Description  Delete an existing vocabulary word from user's collection
+// @Tags         vocabulary
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Vocabulary ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/{id} [delete]
 func (r *Router) DeleteVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -240,7 +299,20 @@ func (r *Router) DeleteVocabulary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Vocabulary deleted successfully"})
 }
 
-// Review System
+// GetVocabularyForReview godoc
+// @Summary      Get vocabulary for review
+// @Description  Get vocabulary words that are due for SRS review
+// @Tags         reviews
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Param        limit query int false "Number of items to return (max 50)" default(10)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/reviews [get]
 func (r *Router) GetVocabularyForReview(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -279,6 +351,18 @@ func (r *Router) GetVocabularyForReview(c *gin.Context) {
 	})
 }
 
+// ReviewVocabulary godoc
+// @Summary      Review vocabulary
+// @Description  Submit a review for a vocabulary word using SRS algorithm
+// @Tags         reviews
+// @Accept       json
+// @Produce      json
+// @Param        request body ReviewRequest true "Review data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/reviews [post]
 func (r *Router) ReviewVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -309,6 +393,18 @@ func (r *Router) ReviewVocabulary(c *gin.Context) {
 	})
 }
 
+// BatchReviewVocabulary godoc
+// @Summary      Batch review vocabulary
+// @Description  Submit multiple vocabulary reviews in a single request
+// @Tags         reviews
+// @Accept       json
+// @Produce      json
+// @Param        request body BatchReviewRequest true "Batch review data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/reviews/batch [post]
 func (r *Router) BatchReviewVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -339,7 +435,19 @@ func (r *Router) BatchReviewVocabulary(c *gin.Context) {
 	})
 }
 
-// Statistics
+// GetVocabularyStats godoc
+// @Summary      Get vocabulary statistics
+// @Description  Get comprehensive statistics for user's vocabulary in a specific language
+// @Tags         statistics
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/stats [get]
 func (r *Router) GetVocabularyStats(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -368,6 +476,19 @@ func (r *Router) GetVocabularyStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
+// GetVocabularyProgress godoc
+// @Summary      Get vocabulary progress
+// @Description  Get vocabulary learning progress over time with analytics
+// @Tags         statistics
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        days query int false "Number of days to analyze (max 365)" default(30)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/progress [get]
 func (r *Router) GetVocabularyProgress(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -398,7 +519,21 @@ func (r *Router) GetVocabularyProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"progress": progress})
 }
 
-// Search and Filter
+// SearchVocabulary godoc
+// @Summary      Search vocabulary
+// @Description  Search vocabulary words by term in word, definition, or notes
+// @Tags         search
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        q query string true "Search query term"
+// @Param        limit query int false "Number of items to return (max 100)" default(20)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/search [get]
 func (r *Router) SearchVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -439,6 +574,19 @@ func (r *Router) SearchVocabulary(c *gin.Context) {
 	})
 }
 
+// FilterVocabulary godoc
+// @Summary      Filter vocabulary
+// @Description  Filter vocabulary words using advanced criteria and filters
+// @Tags         search
+// @Accept       json
+// @Produce      json
+// @Param        request body VocabularyFilter true "Filter criteria"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/filter [post]
 func (r *Router) FilterVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -465,7 +613,18 @@ func (r *Router) FilterVocabulary(c *gin.Context) {
 	})
 }
 
-// Import/Export
+// ImportVocabulary godoc
+// @Summary      Import vocabulary
+// @Description  Import vocabulary words from external sources or files
+// @Tags         import-export
+// @Accept       json
+// @Produce      json
+// @Param        request body ImportVocabularyRequest true "Import data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/import [post]
 func (r *Router) ImportVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -496,6 +655,19 @@ func (r *Router) ImportVocabulary(c *gin.Context) {
 	})
 }
 
+// ExportVocabulary godoc
+// @Summary      Export vocabulary
+// @Description  Export user's vocabulary words in various formats (JSON, CSV)
+// @Tags         import-export
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        format query string false "Export format (json, csv)" default(json)
+// @Success      200 {string} string "File content"
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/export [get]
 func (r *Router) ExportVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -534,7 +706,17 @@ func (r *Router) ExportVocabulary(c *gin.Context) {
 	c.String(http.StatusOK, data)
 }
 
-// SRS Configuration
+// GetSRSConfig godoc
+// @Summary      Get SRS configuration
+// @Description  Get current Spaced Repetition System configuration for the user
+// @Tags         srs
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/srs-config [get]
 func (r *Router) GetSRSConfig(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -551,6 +733,18 @@ func (r *Router) GetSRSConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"srs_config": configResponse})
 }
 
+// UpdateSRSConfig godoc
+// @Summary      Update SRS configuration
+// @Description  Update Spaced Repetition System configuration with custom parameters
+// @Tags         srs
+// @Accept       json
+// @Produce      json
+// @Param        request body UpdateSRSConfigRequest true "SRS configuration data"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/srs-config [put]
 func (r *Router) UpdateSRSConfig(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -584,6 +778,18 @@ func (r *Router) UpdateSRSConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "SRS configuration updated successfully"})
 }
 
+// ApplySRSPreset godoc
+// @Summary      Apply SRS preset
+// @Description  Apply a predefined SRS configuration preset (beginner, intermediate, advanced)
+// @Tags         srs
+// @Accept       json
+// @Produce      json
+// @Param        preset path string true "Preset name (beginner, intermediate, advanced)"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/srs-config/preset/{preset} [put]
 func (r *Router) ApplySRSPreset(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -606,7 +812,18 @@ func (r *Router) ApplySRSPreset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "SRS preset applied successfully"})
 }
 
-// Vocabulary Lists handlers
+// GetVocabularyLists godoc
+// @Summary      Get vocabulary lists
+// @Description  Get all vocabulary lists for the user, optionally filtered by language
+// @Tags         lists
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/lists [get]
 func (r *Router) GetVocabularyLists(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -630,6 +847,18 @@ func (r *Router) GetVocabularyLists(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"lists": lists})
 }
 
+// CreateVocabularyList godoc
+// @Summary      Create vocabulary list
+// @Description  Create a new vocabulary list for organizing words
+// @Tags         lists
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateVocabularyListRequest true "List data"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/lists [post]
 func (r *Router) CreateVocabularyList(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -660,6 +889,19 @@ func (r *Router) CreateVocabularyList(c *gin.Context) {
 	})
 }
 
+// GetVocabularyList godoc
+// @Summary      Get vocabulary list
+// @Description  Get a specific vocabulary list with its words
+// @Tags         lists
+// @Accept       json
+// @Produce      json
+// @Param        list_id path string true "List ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/lists/{list_id} [get]
 func (r *Router) GetVocabularyList(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -682,6 +924,19 @@ func (r *Router) GetVocabularyList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"list": list})
 }
 
+// UpdateVocabularyList godoc
+// @Summary      Update vocabulary list
+// @Description  Update an existing vocabulary list's metadata and settings
+// @Tags         lists
+// @Accept       json
+// @Produce      json
+// @Param        list_id path string true "List ID"
+// @Param        request body UpdateVocabularyListRequest true "Updated list data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/lists/{list_id} [put]
 func (r *Router) UpdateVocabularyList(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -718,6 +973,18 @@ func (r *Router) UpdateVocabularyList(c *gin.Context) {
 	})
 }
 
+// DeleteVocabularyList godoc
+// @Summary      Delete vocabulary list
+// @Description  Delete an existing vocabulary list and optionally its associated words
+// @Tags         lists
+// @Accept       json
+// @Produce      json
+// @Param        list_id path string true "List ID"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/lists/{list_id} [delete]
 func (r *Router) DeleteVocabularyList(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -740,7 +1007,18 @@ func (r *Router) DeleteVocabularyList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Vocabulary list deleted successfully"})
 }
 
-// Bulk Operations handlers
+// BulkAddVocabulary godoc
+// @Summary      Bulk add vocabulary
+// @Description  Add multiple vocabulary words in a single operation
+// @Tags         bulk
+// @Accept       json
+// @Produce      json
+// @Param        request body BulkAddVocabularyRequest true "Bulk vocabulary data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/bulk-add [post]
 func (r *Router) BulkAddVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -771,6 +1049,18 @@ func (r *Router) BulkAddVocabulary(c *gin.Context) {
 	})
 }
 
+// BulkDeleteVocabulary godoc
+// @Summary      Bulk delete vocabulary
+// @Description  Delete multiple vocabulary words in a single operation
+// @Tags         bulk
+// @Accept       json
+// @Produce      json
+// @Param        request body BulkDeleteVocabularyRequest true "Bulk delete data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/bulk-delete [post]
 func (r *Router) BulkDeleteVocabulary(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -801,6 +1091,18 @@ func (r *Router) BulkDeleteVocabulary(c *gin.Context) {
 	})
 }
 
+// BulkResetProgress godoc
+// @Summary      Bulk reset progress
+// @Description  Reset SRS progress for multiple vocabulary words in a single operation
+// @Tags         bulk
+// @Accept       json
+// @Produce      json
+// @Param        request body BulkResetProgressRequest true "Bulk reset data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /vocabulary/bulk-reset [post]
 func (r *Router) BulkResetProgress(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {

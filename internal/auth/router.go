@@ -6,8 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
+
+	_ "github.com/Raylynd6299/babel/cmd/auth-service/docs"
 )
 
 type Router struct {
@@ -39,6 +43,9 @@ func NewRouter(service *Service) *gin.Engine {
 		validator:  validator.New(),
 		jwtService: jwtService,
 	}
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("auth")))
 
 	v1 := router.Group("/api/v1")
 	{
@@ -75,6 +82,17 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+// Register godoc
+// @Summary      Register a new user
+// @Description  Create a new user account with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body RegisterRequest true "User registration data"
+// @Success      201 {object} AuthResponse
+// @Failure      400 {object} map[string]string
+// @Failure      409 {object} map[string]string
+// @Router       /register [post]
 func (r *Router) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -96,6 +114,17 @@ func (r *Router) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
+// Login godoc
+// @Summary      Login user
+// @Description  Authenticate user with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body LoginRequest true "User login credentials"
+// @Success      200 {object} AuthResponse
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /login [post]
 func (r *Router) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -117,6 +146,17 @@ func (r *Router) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// RefreshToken godoc
+// @Summary      Refresh access token
+// @Description  Get new access token using refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body RefreshTokenRequest true "Refresh token"
+// @Success      200 {object} AuthResponse
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /refresh [post]
 func (r *Router) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -138,6 +178,17 @@ func (r *Router) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetProfile godoc
+// @Summary      Get user profile
+// @Description  Get current user's profile information
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /me [get]
 func (r *Router) GetProfile(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -154,6 +205,18 @@ func (r *Router) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+// UpdateProfile godoc
+// @Summary      Update user profile
+// @Description  Update current user's profile information
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body UpdateProfileRequest true "Profile update data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /me [put]
 func (r *Router) UpdateProfile(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -181,6 +244,17 @@ func (r *Router) UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+// DeleteAccount godoc
+// @Summary      Delete user account
+// @Description  Permanently delete current user's account
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /me [delete]
 func (r *Router) DeleteAccount(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {

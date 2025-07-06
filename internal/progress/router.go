@@ -7,8 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	polyfyjwt "github.com/Raylynd6299/babel/pkg/jwt"
+
+	_ "github.com/Raylynd6299/babel/cmd/progress-service/docs"
 )
 
 type Router struct {
@@ -40,6 +44,9 @@ func NewRouter(service *Service) *gin.Engine {
 		validator:  validator.New(),
 		jwtService: jwtService,
 	}
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("progress")))
 
 	v1 := router.Group("/api/v1")
 
@@ -73,7 +80,19 @@ func NewRouter(service *Service) *gin.Engine {
 	return router
 }
 
-// Input logging
+// LogInput godoc
+// @Summary      Log study input
+// @Description  Log a study session with content consumption data
+// @Tags         input
+// @Accept       json
+// @Produce      json
+// @Param        request body LogInputRequest true "Study session data"
+// @Param        language_id query int false "Language ID (can also be in request body)"
+// @Success      201 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/input [post]
 func (r *Router) LogInput(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -119,7 +138,19 @@ func (r *Router) LogInput(c *gin.Context) {
 	})
 }
 
-// Statistics
+// GetUserStats godoc
+// @Summary      Get user statistics
+// @Description  Get comprehensive statistics for a user in a specific language
+// @Tags         statistics
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/stats [get]
 func (r *Router) GetUserStats(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -148,6 +179,20 @@ func (r *Router) GetUserStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
+// GetProgressAnalytics godoc
+// @Summary      Get progress analytics
+// @Description  Get detailed analytics and trends for user progress over time
+// @Tags         analytics
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int true "Language ID"
+// @Param        days query int false "Number of days to analyze (max 365)" default(30)
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/analytics [get]
 func (r *Router) GetProgressAnalytics(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -183,6 +228,18 @@ func (r *Router) GetProgressAnalytics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"analytics": analytics})
 }
 
+// GetRecentActivity godoc
+// @Summary      Get recent activity
+// @Description  Get user's recent study activity across all languages
+// @Tags         activity
+// @Accept       json
+// @Produce      json
+// @Param        limit query int false "Number of activities to return (max 50)" default(10)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/recent [get]
 func (r *Router) GetRecentActivity(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -206,6 +263,20 @@ func (r *Router) GetRecentActivity(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"recent_activity": activity})
 }
 
+// GetCalendarData godoc
+// @Summary      Get calendar data
+// @Description  Get study activity data for calendar visualization
+// @Tags         calendar
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        year query int false "Year (2020-2030)" default(current year)
+// @Param        month query int false "Month (1-12)" default(current month)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/calendar [get]
 func (r *Router) GetCalendarData(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -245,7 +316,20 @@ func (r *Router) GetCalendarData(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"calendar": calendar})
 }
 
-// Progress history
+// GetProgressHistory godoc
+// @Summary      Get progress history
+// @Description  Get paginated history of user's study sessions
+// @Tags         history
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        limit query int false "Number of records to return (max 100)" default(20)
+// @Param        offset query int false "Number of records to skip" default(0)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/history [get]
 func (r *Router) GetProgressHistory(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -288,6 +372,19 @@ func (r *Router) GetProgressHistory(c *gin.Context) {
 	})
 }
 
+// GetStudySessions godoc
+// @Summary      Get study sessions
+// @Description  Get aggregated study sessions data for a specific time period
+// @Tags         sessions
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Param        days query int false "Number of days to look back (max 90)" default(7)
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/sessions [get]
 func (r *Router) GetStudySessions(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -318,7 +415,18 @@ func (r *Router) GetStudySessions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
 }
 
-// Streaks and goals
+// GetStreakInfo godoc
+// @Summary      Get streak information
+// @Description  Get current and longest streak information for a user
+// @Tags         streaks
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/streak [get]
 func (r *Router) GetStreakInfo(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -342,6 +450,18 @@ func (r *Router) GetStreakInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"streak": streak})
 }
 
+// SetGoals godoc
+// @Summary      Set learning goals
+// @Description  Set daily, weekly, and monthly learning goals for a language
+// @Tags         goals
+// @Accept       json
+// @Produce      json
+// @Param        request body SetGoalsRequest true "Goals data"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/goals [post]
 func (r *Router) SetGoals(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -369,6 +489,18 @@ func (r *Router) SetGoals(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Goals updated successfully"})
 }
 
+// GetGoals godoc
+// @Summary      Get learning goals
+// @Description  Get current learning goals and progress for a language
+// @Tags         goals
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/goals [get]
 func (r *Router) GetGoals(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -392,7 +524,18 @@ func (r *Router) GetGoals(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"goals": goals})
 }
 
-// Reports
+// GetWeeklyReport godoc
+// @Summary      Get weekly report
+// @Description  Get comprehensive weekly progress report with analytics
+// @Tags         reports
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/weekly-report [get]
 func (r *Router) GetWeeklyReport(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {
@@ -416,6 +559,18 @@ func (r *Router) GetWeeklyReport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"weekly_report": report})
 }
 
+// GetMonthlyReport godoc
+// @Summary      Get monthly report
+// @Description  Get comprehensive monthly progress report with detailed analytics
+// @Tags         reports
+// @Accept       json
+// @Produce      json
+// @Param        language_id query int false "Language ID (optional for all languages)"
+// @Success      200 {object} map[string]interface{}
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Security     BearerAuth
+// @Router       /progress/monthly-report [get]
 func (r *Router) GetMonthlyReport(c *gin.Context) {
 	userID, exists := polyfyjwt.GetUserIDFromContext(c)
 	if !exists {

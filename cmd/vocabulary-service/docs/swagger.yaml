@@ -1,0 +1,1204 @@
+basePath: /api/v1
+definitions:
+  vocabulary.AddVocabularyRequest:
+    properties:
+      context_sentence:
+        type: string
+      definition:
+        type: string
+      difficulty_level:
+        type: string
+      example_sentence:
+        type: string
+      personal_note:
+        type: string
+      phonetic_transcription:
+        type: string
+      source_content_id:
+        type: string
+      translation:
+        maxLength: 255
+        minLength: 1
+        type: string
+      word:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - translation
+    - word
+    type: object
+  vocabulary.BatchReviewRequest:
+    properties:
+      reviews:
+        items:
+          $ref: '#/definitions/vocabulary.ReviewRequest'
+        maxItems: 50
+        minItems: 1
+        type: array
+    required:
+    - reviews
+    type: object
+  vocabulary.BulkAddVocabularyRequest:
+    properties:
+      list_id:
+        type: string
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - vocabulary_ids
+    type: object
+  vocabulary.BulkDeleteVocabularyRequest:
+    properties:
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - vocabulary_ids
+    type: object
+  vocabulary.BulkResetProgressRequest:
+    properties:
+      reset_type:
+        enum:
+        - all
+        - progress
+        - reviews
+        type: string
+      vocabulary_ids:
+        items:
+          type: string
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - reset_type
+    - vocabulary_ids
+    type: object
+  vocabulary.CreateVocabularyListRequest:
+    properties:
+      description:
+        maxLength: 1000
+        type: string
+      is_public:
+        type: boolean
+      language_id:
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - language_id
+    - name
+    type: object
+  vocabulary.ImportOptions:
+    properties:
+      skip_duplicates:
+        type: boolean
+      update_existing:
+        type: boolean
+    type: object
+  vocabulary.ImportVocabularyRequest:
+    properties:
+      data:
+        type: string
+      format:
+        enum:
+        - csv
+        - json
+        - anki
+        type: string
+      language_id:
+        type: integer
+      options:
+        $ref: '#/definitions/vocabulary.ImportOptions'
+    required:
+    - data
+    - format
+    - language_id
+    type: object
+  vocabulary.ReviewRequest:
+    properties:
+      correct:
+        type: boolean
+      response_time:
+        description: milliseconds
+        type: integer
+      vocabulary_id:
+        type: string
+    required:
+    - vocabulary_id
+    type: object
+  vocabulary.UpdateSRSConfigRequest:
+    properties:
+      easy_bonus:
+        maximum: 3
+        minimum: 1
+        type: number
+      failure_penalty:
+        maximum: 1
+        minimum: 0.1
+        type: number
+      graduation_steps:
+        items:
+          type: integer
+        maxItems: 10
+        minItems: 1
+        type: array
+      hard_penalty:
+        maximum: 1
+        minimum: 0.1
+        type: number
+      max_ease_factor:
+        maximum: 5
+        minimum: 1
+        type: number
+      max_reviews_per_day:
+        maximum: 1000
+        minimum: 10
+        type: integer
+      min_ease_factor:
+        maximum: 3
+        minimum: 1
+        type: number
+      new_words_per_day:
+        maximum: 100
+        minimum: 1
+        type: integer
+    type: object
+  vocabulary.UpdateVocabularyListRequest:
+    properties:
+      description:
+        maxLength: 1000
+        type: string
+      is_public:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  vocabulary.UpdateVocabularyRequest:
+    properties:
+      context_sentence:
+        type: string
+      definition:
+        type: string
+      example_sentence:
+        type: string
+      personal_note:
+        type: string
+      phonetic_transcription:
+        maxLength: 255
+        type: string
+      translation:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  vocabulary.VocabularyFilter:
+    properties:
+      language_id:
+        type: integer
+      limit:
+        maximum: 100
+        minimum: 1
+        type: integer
+      mastery_levels:
+        items:
+          type: integer
+        type: array
+      offset:
+        minimum: 0
+        type: integer
+      search_query:
+        type: string
+      sort_by:
+        description: added_at, mastery_level, word, next_review
+        type: string
+      sort_direction:
+        description: asc, desc
+        type: string
+    required:
+    - language_id
+    type: object
+host: localhost:8004
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Vocabulary management and SRS (Spaced Repetition System) service for
+    Polyfy language learning platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Polyfy Vocabulary Service API
+  version: "1.0"
+paths:
+  /vocabulary:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of user's vocabulary words
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user vocabulary
+      tags:
+      - vocabulary
+    post:
+      consumes:
+      - application/json
+      description: Add a new vocabulary word to user's collection
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - description: Vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.AddVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add new vocabulary
+      tags:
+      - vocabulary
+  /vocabulary/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing vocabulary word from user's collection
+      parameters:
+      - description: Vocabulary ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete vocabulary
+      tags:
+      - vocabulary
+    put:
+      consumes:
+      - application/json
+      description: Update an existing vocabulary word
+      parameters:
+      - description: Vocabulary ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update vocabulary
+      tags:
+      - vocabulary
+  /vocabulary/bulk-add:
+    post:
+      consumes:
+      - application/json
+      description: Add multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk vocabulary data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkAddVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk add vocabulary
+      tags:
+      - bulk
+  /vocabulary/bulk-delete:
+    post:
+      consumes:
+      - application/json
+      description: Delete multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk delete data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkDeleteVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk delete vocabulary
+      tags:
+      - bulk
+  /vocabulary/bulk-reset:
+    post:
+      consumes:
+      - application/json
+      description: Reset SRS progress for multiple vocabulary words in a single operation
+      parameters:
+      - description: Bulk reset data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BulkResetProgressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk reset progress
+      tags:
+      - bulk
+  /vocabulary/export:
+    get:
+      consumes:
+      - application/json
+      description: Export user's vocabulary words in various formats (JSON, CSV)
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: json
+        description: Export format (json, csv)
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Export vocabulary
+      tags:
+      - import-export
+  /vocabulary/filter:
+    post:
+      consumes:
+      - application/json
+      description: Filter vocabulary words using advanced criteria and filters
+      parameters:
+      - description: Filter criteria
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.VocabularyFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Filter vocabulary
+      tags:
+      - search
+  /vocabulary/import:
+    post:
+      consumes:
+      - application/json
+      description: Import vocabulary words from external sources or files
+      parameters:
+      - description: Import data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.ImportVocabularyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Import vocabulary
+      tags:
+      - import-export
+  /vocabulary/lists:
+    get:
+      consumes:
+      - application/json
+      description: Get all vocabulary lists for the user, optionally filtered by language
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary lists
+      tags:
+      - lists
+    post:
+      consumes:
+      - application/json
+      description: Create a new vocabulary list for organizing words
+      parameters:
+      - description: List data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.CreateVocabularyListRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create vocabulary list
+      tags:
+      - lists
+  /vocabulary/lists/{list_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing vocabulary list and optionally its associated
+        words
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete vocabulary list
+      tags:
+      - lists
+    get:
+      consumes:
+      - application/json
+      description: Get a specific vocabulary list with its words
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary list
+      tags:
+      - lists
+    put:
+      consumes:
+      - application/json
+      description: Update an existing vocabulary list's metadata and settings
+      parameters:
+      - description: List ID
+        in: path
+        name: list_id
+        required: true
+        type: string
+      - description: Updated list data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateVocabularyListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update vocabulary list
+      tags:
+      - lists
+  /vocabulary/progress:
+    get:
+      consumes:
+      - application/json
+      description: Get vocabulary learning progress over time with analytics
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - default: 30
+        description: Number of days to analyze (max 365)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary progress
+      tags:
+      - statistics
+  /vocabulary/reviews:
+    get:
+      consumes:
+      - application/json
+      description: Get vocabulary words that are due for SRS review
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      - default: 10
+        description: Number of items to return (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary for review
+      tags:
+      - reviews
+    post:
+      consumes:
+      - application/json
+      description: Submit a review for a vocabulary word using SRS algorithm
+      parameters:
+      - description: Review data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.ReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Review vocabulary
+      tags:
+      - reviews
+  /vocabulary/reviews/batch:
+    post:
+      consumes:
+      - application/json
+      description: Submit multiple vocabulary reviews in a single request
+      parameters:
+      - description: Batch review data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.BatchReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Batch review vocabulary
+      tags:
+      - reviews
+  /vocabulary/search:
+    get:
+      consumes:
+      - application/json
+      description: Search vocabulary words by term in word, definition, or notes
+      parameters:
+      - description: Language ID (optional for all languages)
+        in: query
+        name: language_id
+        type: integer
+      - description: Search query term
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Number of items to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Search vocabulary
+      tags:
+      - search
+  /vocabulary/srs-config:
+    get:
+      consumes:
+      - application/json
+      description: Get current Spaced Repetition System configuration for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get SRS configuration
+      tags:
+      - srs
+    put:
+      consumes:
+      - application/json
+      description: Update Spaced Repetition System configuration with custom parameters
+      parameters:
+      - description: SRS configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/vocabulary.UpdateSRSConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update SRS configuration
+      tags:
+      - srs
+  /vocabulary/srs-config/preset/{preset}:
+    put:
+      consumes:
+      - application/json
+      description: Apply a predefined SRS configuration preset (beginner, intermediate,
+        advanced)
+      parameters:
+      - description: Preset name (beginner, intermediate, advanced)
+        in: path
+        name: preset
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Apply SRS preset
+      tags:
+      - srs
+  /vocabulary/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for user's vocabulary in a specific
+        language
+      parameters:
+      - description: Language ID
+        in: query
+        name: language_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get vocabulary statistics
+      tags:
+      - statistics
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
